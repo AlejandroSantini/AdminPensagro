@@ -144,7 +144,7 @@ function ProductsTab() {
               />
             </Box>
           </Box>
-          <ContainedButton type="submit" sx={{ mt: 2 }}>Cargar producto</ContainedButton>
+          <ContainedButton type="submit">Cargar producto</ContainedButton>
         </form>
       </Box>
       <Table

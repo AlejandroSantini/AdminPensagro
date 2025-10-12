@@ -150,7 +150,7 @@ export default function CombosTab() {
               />
             </Box>
           </Box>
-          <ContainedButton type="submit" sx={{ mt: 2 }}>Cargar combo</ContainedButton>
+          <ContainedButton type="submit">Cargar combo</ContainedButton>
         </form>
       </Box>
       <Table

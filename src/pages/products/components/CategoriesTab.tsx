@@ -116,7 +116,7 @@ export default function CategoriesTab() {
               />
             </Box>
           </Box>
-          <ContainedButton type="submit" sx={{ mt: 2 }}>Cargar categoría</ContainedButton>
+          <ContainedButton type="submit">Cargar categoría</ContainedButton>
         </form>
       </Box>
       <Table
