@@ -72,8 +72,8 @@ export default function AppRoutes() {
           } 
         />
       </Route>
-      <Route path="/" element={<Navigate to="/principal" replace />} />
-      <Route path="*" element={<Navigate to="/principal" replace />} />
+  <Route path="/" element={<Navigate to="/inicio" replace />} />
+  <Route path="*" element={<Navigate to="/inicio" replace />} />
     </Routes>
   );
 }
