@@ -17,7 +17,7 @@ export default function Dashboard() {
 
   const cards = [
     { title: "Ventas", icon: <VentaIcon fontSize="inherit" />, path: "/ventas" },
-    { title: "Usuarios", icon: <PeopleIcon fontSize="inherit" />, path: "/usuarios" },
+    { title: "Clientes", icon: <PeopleIcon fontSize="inherit" />, path: "/clientes" },
     { title: "Productos", icon: <InventoryIcon fontSize="inherit" />, path: "/productos" },
     { title: "Blog", icon: <BlogIcon fontSize="inherit" />, path: "/blog" },
     { title: "Configuración", icon: <SettingsIcon fontSize="inherit" />, path: "/configuracion-negocio" },
@@ -29,7 +29,7 @@ export default function Dashboard() {
         Principal
       </Typography>
       <Typography variant="body1" color="text.secondary" paragraph>
-        Bienvenido al panel de administración de Pensagro, {user?.name || "Usuario Dev"}!
+        Bienvenido al panel de administración de Pensagro, {user?.name || "Cliente Dev"}!
       </Typography>
       <Grid container spacing={3} sx={{ mt: 1, mb: 2 }}>
         {cards.map(card => (

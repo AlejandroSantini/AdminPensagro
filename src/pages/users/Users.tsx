@@ -71,7 +71,7 @@ export default function Users() {
   return (
     <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1 }}>Usuarios</Typography>
+        <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1 }}>Clientes</Typography>
       </Box>
       <Table
         columns={[

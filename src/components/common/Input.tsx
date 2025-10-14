@@ -19,18 +19,13 @@ export function Input({ label, icon, type, sx, variant = 'outlined', endAdornmen
       label={label}
       type={type}
       fullWidth
+      size="small"
       sx={{
         borderRadius: 2,
         mb: 2,
         mt: 1,
-        height: 40,
-        minHeight: 40,
-        maxHeight: 40,
         '& .MuiInputBase-root': {
           borderRadius: 2,
-          height: 40,
-          minHeight: 40,
-          maxHeight: 40,
         },
         ...(sx || {}),
       }}

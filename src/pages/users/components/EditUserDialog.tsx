@@ -54,7 +54,7 @@ export function EditUserDialog({ open, selectedUser, onChange, onClose, onSave }
       fullWidth
       slotProps={{ paper: { sx: { borderRadius: 2, boxShadow: 'none', p: 1 } } }}
     >
-      <DialogTitle sx={{ fontWeight: 500, color: 'text.primary', pb: 1 }}>Editar usuario/cliente</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 500, color: 'text.primary', pb: 1 }}>Editar cliente/cliente</DialogTitle>
       <DialogContent sx={{ pt: 2 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

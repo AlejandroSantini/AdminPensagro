@@ -41,7 +41,7 @@ class Auth {
       const response = await api.post<ApiResponse<AuthResponse>>('api/users/login', credentials);
       if (response.data.status) {
         const authData = response.data.data;
-        // Guarda usuario y token por separado
+        // Guarda cliente y token por separado
         localStorage.setItem('user', JSON.stringify(authData.user));
         localStorage.setItem('token', authData.token);
         return authData;

@@ -1,5 +1,6 @@
 import { FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
 import type { SelectProps } from '@mui/material';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 export interface SelectOption {
@@ -16,40 +17,33 @@ export interface SelectPropsCustom extends Omit<SelectProps, 'children'> {
 }
 
 export function Select({ label, options, value, onChange, sx, ...props }: SelectPropsCustom) {
+  const baseId = useId();
+  const labelId = `${baseId}-label`;
+  const selectId = `${baseId}-control`;
+
   return (
     <FormControl
       fullWidth
+      size="small"
+      variant="outlined"
       sx={{
         borderRadius: 2,
         mb: 2,
         mt: 1,
-        height: 40,
-        minHeight: 40,
-        maxHeight: 40,
         '& .MuiInputBase-root': {
           borderRadius: 2,
-          height: 40,
-          minHeight: 40,
-          maxHeight: 40,
         },
         ...(sx || {}),
       }}
     >
-      <InputLabel>{label}</InputLabel>
+      <InputLabel id={labelId}>{label}</InputLabel>
       <MuiSelect
+        id={selectId}
+        labelId={labelId}
         label={label}
         value={value}
         onChange={onChange}
-        slotProps={{
-          root: {
-            sx: {
-              borderRadius: 2,
-              height: 40,
-              minHeight: 40,
-              maxHeight: 40,
-            },
-          },
-        }}
+        size="small"
         {...props}
       >
         {options.map((option) => (

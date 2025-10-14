@@ -15,7 +15,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const navigate = useNavigate();
 
 
-  // Login real: guarda usuario y token
+  // Login real: guarda cliente y token
   // Login: solo actualiza el estado en memoria, la persistencia la maneja el servicio
   const login = async (email: string, password: string) => {
     setIsLoading(true);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddIcon from '@mui/icons-material/Add';
@@ -88,69 +88,82 @@ export default function Sales() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1 }}>Ventas</Typography>
-        <Tooltip title="Exportar CSV">
-          <IconButton color="primary" onClick={handleExport}>
-            <DownloadIcon sx={{ mr: 2 }}/>
-          </IconButton>
-        </Tooltip>
-        <ContainedButton icon={<AddIcon />} onClick={() => setManualOpen(true)}>
-          Cargar venta offline
-        </ContainedButton>
-      </Box>
-      <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(() => {})}>
-          <SalesFilters clientOptions={MOCK_CLIENTS} />
-        </form>
-      </FormProvider>
-      <Table
-        columns={[
-          { label: 'Fecha', render: s => s.date },
-          { label: 'Cliente', render: s => s.client },
-          { label: 'CUIT', render: s => s.cuit },
-          { label: 'Producto', render: s => s.product },
-          { label: 'Cantidad', render: s => s.quantity },
-          { label: 'Precio', render: s => `$${s.price}` },
-          { label: 'Estado', render: s => {
-            if (s.status === 'pendiente') return 'Pendiente de pago';
-            if (s.status === 'confirmado') return 'Pago confirmado';
-            if (s.status === 'devolucion') return 'Devolución parcial';
-            return s.status;
-          } },
-          { label: 'Motivo', render: s => s.motivo || '-' },
-          {
-            label: '',
-            render: s => (
-              <Tooltip title="Editar venta">
-                <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => setEditSale(s)}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            ),
-            align: 'right',
-            width: 48,
-          },
-        ]}
-        data={filteredSales}
-        getRowKey={s => s.id}
-        emptyMessage="No hay ventas"
-      />
-      <ManualSaleDialog
-        open={manualOpen}
-        onClose={() => setManualOpen(false)}
-        onSave={handleManualSale}
-        clientOptions={MOCK_CLIENTS}
-        productOptions={MOCK_PRODUCTS}
-      />
-      <EditSaleDialog
-        open={!!editSale}
-        sale={editSale}
-        onClose={() => setEditSale(null)}
-        onSave={handleEditSave}
-        clientOptions={MOCK_CLIENTS}
-        productOptions={MOCK_PRODUCTS}
-      />
+      <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1, mb: 2 }}>
+        Ventas
+      </Typography>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          backgroundColor: '#fff',
+          border: '1px solid #e0e0e0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Tooltip title="Exportar CSV">
+            <IconButton color="primary" onClick={handleExport} sx={{ mr: 2 }}>
+              <DownloadIcon/>
+            </IconButton>
+          </Tooltip>
+          <ContainedButton icon={<AddIcon />} onClick={() => setManualOpen(true)}>
+            Cargar venta offline
+          </ContainedButton>
+        </Box>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(() => {})}>
+            <SalesFilters clientOptions={MOCK_CLIENTS} />
+          </form>
+        </FormProvider>
+        <Table
+          columns={[
+            { label: 'Fecha', render: s => s.date },
+            { label: 'Cliente', render: s => s.client },
+            { label: 'CUIT', render: s => s.cuit },
+            { label: 'Producto', render: s => s.product },
+            { label: 'Cantidad', render: s => s.quantity },
+            { label: 'Precio', render: s => `$${s.price}` },
+            { label: 'Estado', render: s => {
+              if (s.status === 'pendiente') return 'Pendiente de pago';
+              if (s.status === 'confirmado') return 'Pago confirmado';
+              if (s.status === 'devolucion') return 'Devolución parcial';
+              return s.status;
+            } },
+            { label: 'Motivo', render: s => s.motivo || '-' },
+            {
+              label: '',
+              render: s => (
+                <Tooltip title="Editar venta">
+                  <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => setEditSale(s)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ),
+              align: 'right',
+              width: 48,
+            },
+          ]}
+          data={filteredSales}
+          getRowKey={s => s.id}
+          emptyMessage="No hay ventas"
+        />
+        <ManualSaleDialog
+          open={manualOpen}
+          onClose={() => setManualOpen(false)}
+          onSave={handleManualSale}
+          clientOptions={MOCK_CLIENTS}
+          productOptions={MOCK_PRODUCTS}
+        />
+        <EditSaleDialog
+          open={!!editSale}
+          sale={editSale}
+          onClose={() => setEditSale(null)}
+          onSave={handleEditSave}
+          clientOptions={MOCK_CLIENTS}
+          productOptions={MOCK_PRODUCTS}
+        />
+      </Paper>
     </Box>
   );
 }

@@ -32,7 +32,7 @@ interface SidebarItem {
 const menuItems: SidebarItem[] = [
   { text: "Inicio", icon: <DashboardIcon />, path: "/inicio" },
   { text: "Ventas", icon: <VentaIcon />, path: "/ventas" },
-  { text: "Usuarios", icon: <PeopleIcon />, path: "/usuarios" },
+  { text: "Clientes", icon: <PeopleIcon />, path: "/clientes" },
   { text: "Productos", icon: <InventoryIcon />, path: "/productos" },
   { text: "Blog", icon: <BlogIcon />, path: "/blog" },
   { text: "Configuración", icon: <SettingsIcon />, path: "/configuracion-negocio" },

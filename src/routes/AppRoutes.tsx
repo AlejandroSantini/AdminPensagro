@@ -40,7 +40,7 @@ export default function AppRoutes() {
           } 
         />
         <Route 
-          path="/usuarios" 
+          path="/clientes" 
           element={
             <ProtectedRoute>
               <Users />
