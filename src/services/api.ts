@@ -10,13 +10,12 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      if (userData.token) {
-        config.headers.Authorization = `Bearer ${userData.token}`;
+    const token = localStorage.getItem('token');
+    if (!config.headers) config.headers = {} as any;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-    }
+      config.headers['ngrok-skip-browser-warning'] = 'true';
     return config;
   },
   (error) => {
@@ -30,7 +29,7 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('user');
+      localStorage.removeItem('token');
       window.location.href = '/iniciar-sesion';
     }
     

@@ -1,6 +1,8 @@
+
 import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, type User, type AuthContextType } from "../context/AuthContext";
+import authService from '../services/auth';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -8,56 +10,64 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Login simulado: solo guarda un token dummy
+
+  // Login real: guarda usuario y token
+  // Login: solo actualiza el estado en memoria, la persistencia la maneja el servicio
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    // TODO: Reemplazar por llamada real a la API cuando esté disponible
-    await new Promise(resolve => setTimeout(resolve, 500));
-    localStorage.setItem("token", "dummy-token");
-    // setUser(...) // Cuando tengas el backend, setea el usuario real aquí
-    setIsLoading(false);
-    // Redirigir usando navigate (solo para desarrollo)
-    navigate("/dashboard");
-  };
-
-  // Register simulado: solo guarda un token dummy
-  const register = async (userData: { name: string; email: string; phone: string; password: string }) => {
-    setIsLoading(true);
-    // TODO: Reemplazar por llamada real a la API cuando esté disponible
-    await new Promise(resolve => setTimeout(resolve, 500));
-    localStorage.setItem("token", "dummy-token");
-    // setUser(...) // Cuando tengas el backend, setea el usuario real aquí
-    setIsLoading(false);
-  };
-
-  const logout = async () => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    // Limpiar solo el token (y usuario si lo usas)
-    localStorage.removeItem("token");
-    // localStorage.removeItem("authUser");
-    setUser(null);
-  };
-
-  useEffect(() => {
-    // TEMPORAL: acceso directo al dashboard en desarrollo
-    let token = localStorage.getItem("token");
-    if (!token) {
-      localStorage.setItem("token", "dummy-token");
-      token = "dummy-token";
+    try {
+      const res = await authService.login({ email, password });
+      setUser(res.user);
+      setToken(res.token);
+      navigate("/inicio");
+    } catch (err) {
+      setIsLoading(false);
+      console.error('Error en login:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
-    // Cuando tengas el backend, aquí deberías validar el token y setear el usuario real
-    // setUser(...)
+  };
+
+
+  // Logout: solo limpia el estado en memoria, la persistencia la maneja el servicio
+  const logout = async () => {
+    await authService.logout();
+    setUser(null);
+    setToken(null);
+  };
+
+  // Al montar, inicializa el estado desde localStorage solo una vez
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
+      try {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+      } catch {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    } else {
+      setUser(null);
+      setToken(null);
+    }
+    setIsLoading(false);
   }, []);
 
-  const value: AuthContextType = {
+  const value: AuthContextType & { token: string | null } = {
     user,
+    token,
     isAuthenticated: !!user,
     isLoading,
     login,
-    register,
     logout,
   };
 

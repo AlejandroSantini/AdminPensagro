@@ -12,19 +12,25 @@ export interface RegisterRequest {
   password: string;
 }
 
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  status?: string;
+  created_at?: string;
+}
+
 export interface AuthResponse {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-  };
+  user: User;
   token: string;
   refreshToken?: string;
 }
 
 export interface ApiResponse<T> {
-  success: boolean;
+  status: boolean;
   data: T;
   message?: string;
 }
@@ -32,33 +38,15 @@ export interface ApiResponse<T> {
 class Auth {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      const response = await api.post<ApiResponse<AuthResponse>>('/users/login', credentials);
-      
-      if (response.data.success) {
+      const response = await api.post<ApiResponse<AuthResponse>>('api/users/login', credentials);
+      if (response.data.status) {
         const authData = response.data.data;
-        localStorage.setItem('user', JSON.stringify(authData));
+        // Guarda usuario y token por separado
+        localStorage.setItem('user', JSON.stringify(authData.user));
+        localStorage.setItem('token', authData.token);
         return authData;
       } else {
         throw new Error(response.data.message || 'Error en el login');
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Error de conexión');
-    }
-  }
-
-  async register(userData: RegisterRequest): Promise<AuthResponse> {
-    try {
-      const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', userData);
-      
-      if (response.data.success) {
-        const authData = response.data.data;
-        localStorage.setItem('user', JSON.stringify(authData));
-        return authData;
-      } else {
-        throw new Error(response.data.message || 'Error en el registro');
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -75,28 +63,7 @@ class Auth {
       console.warn('Error al hacer logout en el servidor:', error);
     } finally {
       localStorage.removeItem('user');
-    }
-  }
-
-  async verifyToken(): Promise<AuthResponse> {
-    const response = await api.get<ApiResponse<AuthResponse>>('/auth/verify');
-    
-    if (response.data.success) {
-      return response.data.data;
-    } else {
-      throw new Error('Token no válido');
-    }
-  }
-
-  async refreshToken(): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/refresh');
-    
-    if (response.data.success) {
-      const authData = response.data.data;
-      localStorage.setItem('user', JSON.stringify(authData));
-      return authData;
-    } else {
-      throw new Error('Error al refrescar token');
+      localStorage.removeItem('token');
     }
   }
 

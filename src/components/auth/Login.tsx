@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { Box, Card, CardContent, Typography, Alert, InputAdornment, IconButton } from "@mui/material";
 import { Input } from "../common/Input";
 import { ContainedButton } from "../common/ContainedButton";
-import auth from '../../services/auth';
+import { useAuth } from '../../hooks/useAuth';
 import {
   Visibility,
   VisibilityOff,
@@ -11,16 +11,15 @@ import {
   Lock,
 } from "@mui/icons-material";
 
-interface LoginProps {
-  onLogin?: (email: string, password: string) => void;
-}
+
+
 
 interface LoginFormData {
   email: string;
   password: string;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,16 +28,15 @@ export default function Login({ onLogin }: LoginProps) {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<LoginFormData>();
 
+  const { login } = useAuth();
   const onSubmit = async (data: LoginFormData) => {
     setError("");
     setLoading(true);
     try {
-      await auth.login({ email: data.email, password: data.password });
-      if (onLogin) {
-        onLogin(data.email, data.password);
-      }
+      await login(data.email, data.password);
     } catch (err: any) {
       setError(err?.message || "Error al iniciar sesión. Intenta de nuevo.");
     } finally {
@@ -144,7 +142,11 @@ export default function Login({ onLogin }: LoginProps) {
             <ContainedButton
               type="submit"
               fullWidth
-              disabled={loading}
+              disabled={
+                loading ||
+                !watch("email") ||
+                !watch("password")
+              }
             >
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </ContainedButton>
