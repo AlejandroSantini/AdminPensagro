@@ -12,3 +12,5 @@ export const putSaleRoute = (id: number | string): string => `${SALES_BASE}/${id
 export const deleteSaleRoute = (id: number | string): string => `${SALES_BASE}/${id}`;
 
 export const exportSalesRoute = (): string => `${SALES_BASE}/export`;
+
+export const getSalesByClientRoute = (clientId: number | string): string => `${SALES_BASE}?client_id=${encodeURIComponent(String(clientId))}`;

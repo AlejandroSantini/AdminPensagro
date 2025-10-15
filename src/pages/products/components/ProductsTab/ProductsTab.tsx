@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, IconButton, Tooltip, Button } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { Table } from '../../../../components/common/Table';
-import { ProductModal } from './ProductModal';
-import type { Product, ProductFormData, CategoryRef } from '../../../../../types/product';
+import type { Product, CategoryRef } from '../../../../../types/product';
 import api from '../../../../services/api';
-import { getProductsRoute, postProductRoute, putProductRoute } from '../../../../services/products';
+import { getProductsRoute, deleteProductRoute } from '../../../../services/products';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
 export default function ProductTab() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [open, setOpen] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
-  const deleteProductRoute = (id: number | string) => `${getProductsRoute()}/${id}`;
 
   const loadProducts = async () => {
     try {
@@ -50,34 +48,21 @@ export default function ProductTab() {
   };
 
   useEffect(() => {
-    loadProducts()
+    loadProducts();
   }, []);
 
-  const openCreateModal = () => {
-    setSelectedProduct(null);
-    setOpen(true);
+  const goToNewProduct = () => {
+    navigate('/productos/nuevo');
   };
 
-  const openEditModal = (product: Product) => {
-    setSelectedProduct(product);
-    setOpen(true);
-  };
-
-  const closeModal = () => {
-    setOpen(false);
-    setSelectedProduct(null);
-  };
-
-  const handleModalSuccess = () => {
-    closeModal();
-    loadProducts();
+  const goToEditProduct = (product: Product) => {
+    navigate(`/productos/${product.id}`);
   };
 
   return (
     <Box>
-      <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
-        <Typography fontWeight={600}>Productos</Typography>
-        <ContainedButton startIcon={<AddIcon />} onClick={openCreateModal}>Nuevo producto</ContainedButton>
+      <Box mb={2} display="flex" justifyContent="right" alignItems="center">
+        <ContainedButton startIcon={<AddIcon />} onClick={goToNewProduct}>Nuevo producto</ContainedButton>
       </Box>
       <Table
         columns={[
@@ -94,7 +79,7 @@ export default function ProductTab() {
             render: (p: Product) => (
               <>
                 <Tooltip title="Editar">
-                  <IconButton color="primary" size="small" onClick={() => openEditModal(p)}>
+                  <IconButton color="primary" size="small" onClick={() => goToEditProduct(p)}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -111,23 +96,6 @@ export default function ProductTab() {
         data={products}
         getRowKey={(p: Product) => p.id}
         emptyMessage="No hay productos"
-      />
-      <ProductModal
-        open={open}
-        initialData={selectedProduct ? {
-          id: selectedProduct.id,
-          sku: selectedProduct.sku,
-          name: selectedProduct.name,
-          description: selectedProduct.description,
-          price_usd: Number(selectedProduct.price_usd),
-          stock: Number(selectedProduct.stock),
-          iva: Number(selectedProduct.iva),
-          featured: selectedProduct.featured,
-          categoryId: selectedProduct.categories[0]?.id || 0,
-          subcategoryId: selectedProduct.subcategories[0]?.id || 0,
-        } : undefined}
-        onClose={closeModal}
-        onSuccess={handleModalSuccess}
       />
 
       <ConfirmDialog

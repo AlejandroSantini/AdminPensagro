@@ -1,138 +1,185 @@
-import { useState } from "react";
-import { Box, Typography, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from "@mui/material";
-import { OutlinedButton } from "../../components/common/OutlinedButton";
-import { Table } from "../../components/common/Table";
-import { EditUserDialog } from "./components/EditUserDialog";
+import { useEffect, useMemo, useState } from "react";
+import { Box, Typography, IconButton, Tooltip, Alert } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
-import type { User } from "../../types";
+import { Table } from "../../components/common/Table";
+import { EditUserDialog } from "./components/EditUserDialog";
+import { PurchaseHistoryDialog } from "./components/PurchaseHistoryDialog";
+import api from "../../services/api";
+import { getClientsRoute, putClientRoute } from "../../services/clients";
+import { translateToSpanish } from "../../utils/translations";
+import type { Client, ClientFormValues } from "../../../types/client";
 
-// Mock data for demonstration
-type UserType = 'minorista' | 'mayorista';
-interface UserWithType extends User {
-  userType: UserType;
-}
-const MOCK_USERS: UserWithType[] = [
-  {
-    id: 1,
-    name: "Juan Perez",
-    email: "juan@mail.com",
-    tipo: "minorista",
-    userType: "minorista",
-    fiscalType: "Consumidor Final",
-    status: "active",
-    createdAt: "2025-01-01",
-    updatedAt: "2025-01-01"
-  },
-  {
-    id: 2,
-    name: "Ana Lopez",
-    email: "ana@mail.com",
-    tipo: "mayorista",
-    userType: "mayorista",
-    fiscalType: "Responsable Inscripto",
-    status: "active",
-    createdAt: "2025-02-01",
-    updatedAt: "2025-02-01"
-  },
-];
+// Ya no necesitamos esta función, el tipo ya se normaliza en normalizeClient
 
+const normalizeClient = (raw: any): Client => {
+  const rawId = raw?.id ?? raw?.client_id ?? raw?.user_id ?? Date.now();
+  // Priorizar el campo client_type de la API, que viene en inglés
+  const rawType = raw?.client_type ?? raw?.clientType ?? raw?.type ?? raw?.tipo ?? "retailer";
+  const statusValue = raw?.status ?? raw?.estado ?? "active";
+  const status = typeof statusValue === "boolean" ? (statusValue ? "active" : "inactive") : String(statusValue);
+  const name = (raw?.name
+    || raw?.full_name
+    || raw?.fullName
+    || raw?.user?.name
+    || "") as string;
+  const email = (raw?.email || raw?.user?.email || "") as string;
+  const safeName = name.trim();
+  const safeEmail = email || "";
+  const numericId = Number(rawId);
+  const id = Number.isNaN(numericId) ? Number(Date.now()) : numericId;
+
+  // Aseguramos que el tipo esté en formato de API (inglés)
+  let type = typeof rawType === "string" ? rawType.toLowerCase() : "retailer";
+  // Normalizar tipos en español a inglés
+  if (type === "minorista") type = "retailer";
+  if (type === "mayorista") type = "wholesaler";
+
+  const client: Client = {
+    id,
+    userId: raw?.user_id ?? raw?.userId ?? undefined,
+    name: safeName || safeEmail || "-",
+    email: safeEmail,
+    type,
+    fiscalType: raw?.fiscalType || raw?.fiscal_type || raw?.fiscal_tipo || raw?.fiscal_condition || null,
+    status,
+    createdAt: raw?.createdAt || raw?.created_at,
+    updatedAt: raw?.updatedAt || raw?.updated_at,
+    phone: raw?.phone || raw?.telefono || raw?.user?.phone || null,
+    companyName: raw?.companyName || raw?.company_name || raw?.business_name || null,
+  };
+
+  return client;
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
+};
 
 export default function Users() {
-  const [users] = useState<UserWithType[]>(MOCK_USERS);
-  const [selectedUser, setSelectedUser] = useState<UserWithType | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [open, setOpen] = useState(false);
-  const [showHistoryUser, setShowHistoryUser] = useState<UserWithType | null>(null);
+  const [historyClient, setHistoryClient] = useState<Client | null>(null);
 
-  const handleEdit = (user: UserWithType) => {
-    setSelectedUser(user);
+  const loadClients = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(getClientsRoute());
+      const payload = res.data;
+      const rawList = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.clients)
+            ? payload.clients
+            : [];
+      const mapped = Array.isArray(rawList) ? rawList.map(normalizeClient) : [];
+      setClients(mapped);
+    } catch (err) {
+      setClients([]);
+      setError("No se pudieron cargar los clientes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  const handleEdit = (client: Client) => {
+    setSelectedClient(client);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedUser(null);
+    setSelectedClient(null);
   };
 
-  const handleSave = () => {
-    // TODO: Call PUT /users/:id
-    setOpen(false);
-    setSelectedUser(null);
+  const handleSuccess = () => {
+    loadClients();
   };
 
-  const handleShowHistory = (user: UserWithType) => {
-    setShowHistoryUser(user);
+  const handleShowHistory = (client: Client) => {
+    setHistoryClient(client);
   };
 
   const handleCloseHistory = () => {
-    setShowHistoryUser(null);
+    setHistoryClient(null);
   };
+
+  const emptyMessage = useMemo(() => (loading ? "Cargando clientes…" : "No hay clientes"), [loading]);
 
   return (
     <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1 }}>Clientes</Typography>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Table
         columns={[
-          { label: 'Nombre', render: u => u.name },
-          { label: 'Email', render: u => u.email },
-          { label: 'Tipo', render: u => u.userType },
-          { label: 'Estado', render: u => u.status ? 'Activo' : 'Inactivo' },
-          { label: 'Creado', render: u => u.createdAt },
+          { label: 'Nombre', render: (c: Client) => c.name || '-' },
+          { label: 'Email', render: (c: Client) => c.email || '-' },
+          { 
+            label: 'Tipo', 
+            render: (c: Client) => translateToSpanish(c.type, 'clientType')
+          },
+          { 
+            label: 'Estado', 
+            render: (c: Client) => translateToSpanish(c.status, 'status')
+          },
+          { label: 'Creado', render: (c: Client) => formatDate(c.createdAt) },
           {
             label: 'Acciones',
-            render: u => (
+            render: (c: Client) => (
               <>
-                {handleEdit && (
-                  <Tooltip title="Editar">
-                    <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleEdit(u)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                {handleShowHistory && (
-                  <Tooltip title="Historial de compras">
-                    <IconButton color="secondary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleShowHistory(u)}>
-                      <HistoryIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                {/* Otros iconos opcionales aquí */}
+                <Tooltip title="Editar">
+                  <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleEdit(c)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Historial de compras">
+                  <IconButton color="secondary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleShowHistory(c)}>
+                    <HistoryIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </>
             ),
             align: 'center',
           },
         ]}
-        data={users}
-        getRowKey={u => u.id}
+        data={clients}
+        getRowKey={(c: Client) => c.id}
+        emptyMessage={emptyMessage}
       />
 
       <EditUserDialog
         open={open}
-        selectedUser={selectedUser}
-        onChange={user => setSelectedUser(user)}
+        selectedUser={selectedClient}
         onClose={handleClose}
-        onSave={handleSave}
+        onSuccess={handleSuccess}
       />
 
-      {/* Purchase History Dialog */}
-      <Dialog
-        open={!!showHistoryUser}
+      <PurchaseHistoryDialog
+        open={!!historyClient}
+        clientId={historyClient?.id}
+        clientName={historyClient?.name}
         onClose={handleCloseHistory}
-        maxWidth="sm"
-        fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 2, boxShadow: 'none' } } }}
-      >
-        <DialogTitle sx={{ fontWeight: 500, color: 'text.primary', pb: 0 }}>Historial de compras - {showHistoryUser?.name}</DialogTitle>
-        <DialogContent sx={{ pt: 1 }}>
-          {/* TODO: Fetch and display purchase history for user */}
-          <Typography variant="body2" color="text.secondary">(Aquí irá la tabla de historial de compras)</Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <OutlinedButton onClick={handleCloseHistory}>Cerrar</OutlinedButton>
-        </DialogActions>
-      </Dialog>
+      />
     </Box>
   );
 }

@@ -4,11 +4,13 @@ import PublicRoute from "../components/guards/PublicRoute";
 import AuthPage from "../pages/auth/Auth";
 import DashboardPage from "../pages/dashboard/Dashboard";
 import Sales from "../pages/sales/Sales";
+import SaleForm from "../pages/sales/components/SaleForm";
 import Users from "../pages/users/Users";
 import Products from "../pages/products/Products";
 import Blog from "../pages/blog/Blog";
 import BusinessSettings from "../pages/businessSettings/BusinessSettings";
 import Layout from "../components/layout/Layout";
+import ProductForm from "../pages/products/components/ProductsTab/ProductForm";
 
 export default function AppRoutes() {
   return (
@@ -40,6 +42,22 @@ export default function AppRoutes() {
           } 
         />
         <Route 
+          path="/ventas/nueva" 
+          element={
+            <ProtectedRoute>
+              <SaleForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ventas/:id" 
+          element={
+            <ProtectedRoute>
+              <SaleForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/clientes" 
           element={
             <ProtectedRoute>
@@ -52,6 +70,22 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <Products />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/productos/nuevo" 
+          element={
+            <ProtectedRoute>
+              <ProductForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/productos/:id" 
+          element={
+            <ProtectedRoute>
+              <ProductForm />
             </ProtectedRoute>
           } 
         />

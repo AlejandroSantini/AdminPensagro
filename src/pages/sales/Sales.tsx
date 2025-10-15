@@ -7,8 +7,7 @@ import { Table } from '../../components/common/Table';
 import { ContainedButton } from '../../components/common/ContainedButton';
 import { useForm, FormProvider } from 'react-hook-form';
 import { SalesFilters } from './components/SalesFilters';
-import { ManualSaleDialog } from './components/ManualSaleDialog';
-import { EditSaleDialog } from './components/EditSaleDialog';
+import { useNavigate } from 'react-router-dom';
 
 // Mock data
 const MOCK_CLIENTS = [
@@ -45,8 +44,7 @@ const MOCK_SALES = [
 ];
 
 export default function Sales() {
-  const [manualOpen, setManualOpen] = useState(false);
-  const [editSale, setEditSale] = useState<any | null>(null);
+  const navigate = useNavigate();
   const [sales, setSales] = useState(MOCK_SALES);
   const methods = useForm({ defaultValues: { search: '', status: '', motivo: '', client: '' } });
   const { handleSubmit, watch } = methods;
@@ -64,26 +62,12 @@ export default function Sales() {
     // Implementar la lógica de exportación aquí
   };
 
-  const handleManualSale = (data: any) => {
-    setSales(prev => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        date: new Date().toISOString().slice(0, 10),
-        client: MOCK_CLIENTS.find(c => c.value === data.client)?.label || '',
-        cuit: '00-00000000-0',
-        product: MOCK_PRODUCTS.find(p => p.value === data.product)?.label || '',
-        quantity: data.quantity,
-        price: data.price,
-        status: 'confirmado',
-        motivo: '',
-      },
-    ]);
+  const handleNewSale = () => {
+    navigate('/ventas/nueva');
   };
 
-  const handleEditSave = (data: any) => {
-    // Aquí iría la lógica de guardado real
-    setEditSale(null);
+  const handleEditSale = (sale: any) => {
+    navigate(`/ventas/${sale.id}`);
   };
 
   return (
@@ -107,7 +91,7 @@ export default function Sales() {
               <DownloadIcon/>
             </IconButton>
           </Tooltip>
-          <ContainedButton icon={<AddIcon />} onClick={() => setManualOpen(true)}>
+          <ContainedButton startIcon={<AddIcon />} onClick={handleNewSale}>
             Cargar venta offline
           </ContainedButton>
         </Box>
@@ -135,7 +119,7 @@ export default function Sales() {
               label: '',
               render: s => (
                 <Tooltip title="Editar venta">
-                  <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => setEditSale(s)}>
+                  <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleEditSale(s)}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -148,21 +132,7 @@ export default function Sales() {
           getRowKey={s => s.id}
           emptyMessage="No hay ventas"
         />
-        <ManualSaleDialog
-          open={manualOpen}
-          onClose={() => setManualOpen(false)}
-          onSave={handleManualSale}
-          clientOptions={MOCK_CLIENTS}
-          productOptions={MOCK_PRODUCTS}
-        />
-        <EditSaleDialog
-          open={!!editSale}
-          sale={editSale}
-          onClose={() => setEditSale(null)}
-          onSave={handleEditSave}
-          clientOptions={MOCK_CLIENTS}
-          productOptions={MOCK_PRODUCTS}
-        />
+
       </Paper>
     </Box>
   );

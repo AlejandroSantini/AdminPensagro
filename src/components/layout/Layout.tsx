@@ -15,7 +15,11 @@ const collapsedWidth = 64;
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const selectedMenuItem = location.pathname;
+  const path = location.pathname;
+  
+  const mainPath = '/' + path.split('/')[1];
+  
+  const selectedMenuItem = path === mainPath ? path : mainPath;
   const [collapsed, setCollapsed] = useState(false);
 
   const handleMenuItemClick = (path: string) => {

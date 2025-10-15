@@ -1,4 +1,4 @@
-import { FormControl, InputLabel, Select as MuiSelect, MenuItem } from '@mui/material';
+import { FormControl, InputLabel, Select as MuiSelect, MenuItem, Typography } from '@mui/material';
 import type { SelectProps } from '@mui/material';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
@@ -14,9 +14,10 @@ export interface SelectPropsCustom extends Omit<SelectProps, 'children'> {
   options: SelectOption[];
   value: SelectProps['value'];
   onChange: SelectProps['onChange'];
+  helperText?: string;
 }
 
-export function Select({ label, options, value, onChange, sx, ...props }: SelectPropsCustom) {
+export function Select({ label, options, value, onChange, helperText, sx, ...props }: SelectPropsCustom) {
   const baseId = useId();
   const labelId = `${baseId}-label`;
   const selectId = `${baseId}-control`;
@@ -28,8 +29,8 @@ export function Select({ label, options, value, onChange, sx, ...props }: Select
       variant="outlined"
       sx={{
         borderRadius: 2,
-        mb: 2,
         mt: 1,
+        mb: helperText ? 0.5 : 2,
         '& .MuiInputBase-root': {
           borderRadius: 2,
         },
@@ -53,6 +54,11 @@ export function Select({ label, options, value, onChange, sx, ...props }: Select
           </MenuItem>
         ))}
       </MuiSelect>
+      {helperText && (
+        <Typography variant="caption" color={props.error ? "error" : "text.secondary"} sx={{ ml: 1, mt: 0.5 }}>
+          {helperText}
+        </Typography>
+      )}
     </FormControl>
   );
 }
