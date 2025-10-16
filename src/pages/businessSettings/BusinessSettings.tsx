@@ -1,7 +1,8 @@
 
-import { Box, Typography, Paper, Divider, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Divider, IconButton, Tooltip } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { Input } from '../../components/common/Input';
+import { CustomPaper } from '../../components/common/CustomPaper';
 import { ContainedButton } from '../../components/common/ContainedButton';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import AddIcon from '@mui/icons-material/Add';
@@ -42,7 +43,7 @@ export default function BusinessSettings() {
   return (
     <Box maxWidth={800} mx="auto" mt={2}>
       <Typography variant="h5" fontWeight={600} mb={2}>Configuración del Negocio</Typography>
-      <Paper sx={{ p: 3, borderRadius: 3, mb: 3, border: '1px solid #e0e0e0', background: '#fff', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}>
+      <CustomPaper>
         <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
           <Grid container spacing={2}>
             <Grid>
@@ -121,7 +122,7 @@ export default function BusinessSettings() {
           </Grid>
           
         </form>
-      </Paper>
+      </CustomPaper>
     </Box>
   );
 }

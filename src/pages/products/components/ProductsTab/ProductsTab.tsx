@@ -1,14 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Box, 
+  Typography, 
+  IconButton, 
+  Tooltip, 
+  Paper
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import { Input } from '../../../../components/common/Input';
+import { Select } from '../../../../components/common/Select';
+import type { SelectOption } from '../../../../components/common/Select';
 import { Table } from '../../../../components/common/Table';
 import type { Product, CategoryRef } from '../../../../../types/product';
 import api from '../../../../services/api';
-import { getProductsRoute, deleteProductRoute } from '../../../../services/products';
+import { deleteProductRoute, getProductsRoute } from '../../../../services/products';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
+import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
 export default function ProductTab() {
@@ -16,15 +27,27 @@ export default function ProductTab() {
   const [products, setProducts] = useState<Product[]>([]);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const [filters, setFilters] = useState({
+    status: 'active',
+    stock: '',
+    search: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await api.get(getProductsRoute());
+      const res = await api.get(getProductsRoute(), { params: filters });
       setProducts(res.data.data || []);
     } catch (e) {
+      console.error('Error al cargar productos:', e);
       setProducts([]);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [filters]);
 
   const handleDelete = (product: Product) => {
     setDeletingProduct(product);
@@ -46,10 +69,17 @@ export default function ProductTab() {
       // Opcional: mostrar error
     }
   };
+  
+  const handleFilterChange = (field: keyof typeof filters, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
   const goToNewProduct = () => {
     navigate('/productos/nuevo');
@@ -61,9 +91,50 @@ export default function ProductTab() {
 
   return (
     <Box>
-      <Box mb={2} display="flex" justifyContent="right" alignItems="center">
+      <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
+        <OutlinedButton 
+          icon={<FilterListIcon />} 
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+        </OutlinedButton>
         <ContainedButton startIcon={<AddIcon />} onClick={goToNewProduct}>Nuevo producto</ContainedButton>
       </Box>
+      
+      {showFilters && (
+        <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 2, border: '1px solid #e0e0e0' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+            <Input
+              label="Buscar producto"
+              variant="outlined"
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              placeholder="Nombre, SKU..."
+              sx={{ mt: 0, mb: 0 }}
+            />
+            <Select
+              label="Estado"
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value as string)}
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'active', label: 'Activo' },
+                { value: 'inactive', label: 'Inactivo' }
+              ]}
+              sx={{ mt: 0, mb: 0 }}
+            />
+            <Input
+              label="Stock mínimo"
+              variant="outlined"
+              type="number"
+              value={filters.stock}
+              onChange={(e) => handleFilterChange('stock', e.target.value)}
+              sx={{ mt: 0, mb: 0 }}
+            />
+          </Box>
+        </Paper>
+      )}
+      
       <Table
         columns={[
           { label: 'SKU', render: (p: Product) => p.sku },
@@ -78,13 +149,15 @@ export default function ProductTab() {
             label: 'Acciones',
             render: (p: Product) => (
               <>
-                <Tooltip title="Editar">
-                  <IconButton color="primary" size="small" onClick={() => goToEditProduct(p)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
                 <Tooltip title="Eliminar">
-                  <IconButton color="error" size="small" onClick={() => handleDelete(p)}>
+                  <IconButton 
+                    color="error" 
+                    size="small" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(p);
+                    }}
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -95,6 +168,7 @@ export default function ProductTab() {
         ]}
         data={products}
         getRowKey={(p: Product) => p.id}
+        onRowClick={goToEditProduct}
         emptyMessage="No hay productos"
       />
 

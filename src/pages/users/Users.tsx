@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Typography, IconButton, Tooltip, Alert } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import HistoryIcon from "@mui/icons-material/History";
+import { Box, Typography, Alert, Paper, IconButton } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Table } from "../../components/common/Table";
-import { EditUserDialog } from "./components/EditUserDialog";
-import { PurchaseHistoryDialog } from "./components/PurchaseHistoryDialog";
 import api from "../../services/api";
-import { getClientsRoute, putClientRoute } from "../../services/clients";
+import { getClientsRoute } from "../../services/clients";
 import { translateToSpanish } from "../../utils/translations";
-import type { Client, ClientFormValues } from "../../../types/client";
+import { ClientDetails } from "./components/ClientDetails";
+import type { Client } from "../../../types/client";
 
 // Ya no necesitamos esta función, el tipo ya se normaliza en normalizeClient
 
@@ -64,8 +62,6 @@ export default function Users() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [open, setOpen] = useState(false);
-  const [historyClient, setHistoryClient] = useState<Client | null>(null);
 
   const loadClients = async () => {
     setLoading(true);
@@ -94,92 +90,89 @@ export default function Users() {
     loadClients();
   }, []);
 
-  const handleEdit = (client: Client) => {
+  const handleSelectClient = (client: Client) => {
     setSelectedClient(client);
-    setOpen(true);
   };
 
-  const handleClose = () => {
-    setOpen(false);
+  const handleClearSelection = () => {
     setSelectedClient(null);
   };
 
-  const handleSuccess = () => {
+  const handleSaveClient = () => {
     loadClients();
-  };
-
-  const handleShowHistory = (client: Client) => {
-    setHistoryClient(client);
-  };
-
-  const handleCloseHistory = () => {
-    setHistoryClient(null);
+    setSelectedClient(null);
   };
 
   const emptyMessage = useMemo(() => (loading ? "Cargando clientes…" : "No hay clientes"), [loading]);
 
   return (
     <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1 }}>Clientes</Typography>
-      </Box>
+      {selectedClient ? (
+        <>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <IconButton 
+              onClick={handleClearSelection}
+              sx={{ mr: 2, bgcolor: 'background.paper', boxShadow: 1 }}
+              aria-label="volver"
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h6" color="text.primary" sx={{ flexGrow: 1 }}>
+              Detalles del Cliente: {selectedClient.name}
+            </Typography>
+          </Box>
+          
+          <ClientDetails 
+            client={selectedClient} 
+            onSave={handleSaveClient}
+            onCancel={handleClearSelection}
+          />
+        </>
+      ) : (
+        <>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+            <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1 }}>
+              Clientes
+            </Typography>
+          </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Paper 
+            elevation={0}
+            sx={{ 
+              borderRadius: 2,
+              border: '1px solid #e0e0e0',
+              overflow: 'hidden'
+            }}
+          >
+            <Table
+              columns={[
+                { label: 'Nombre', render: (c: Client) => c.name || '-' },
+                { label: 'Email', render: (c: Client) => c.email || '-' },
+                { 
+                  label: 'Tipo', 
+                  render: (c: Client) => translateToSpanish(c.type, 'clientType')
+                },
+                { 
+                  label: 'Estado', 
+                  render: (c: Client) => translateToSpanish(c.status, 'status')
+                },
+                { label: 'Creado', render: (c: Client) => formatDate(c.createdAt) },
+              ]}
+              data={clients}
+              getRowKey={(c: Client) => c.id}
+              onRowClick={handleSelectClient}
+              emptyMessage={emptyMessage}
+              sx={{ boxShadow: 'none', border: 'none' }}
+            />
+          </Paper>
+        </>
       )}
-
-      <Table
-        columns={[
-          { label: 'Nombre', render: (c: Client) => c.name || '-' },
-          { label: 'Email', render: (c: Client) => c.email || '-' },
-          { 
-            label: 'Tipo', 
-            render: (c: Client) => translateToSpanish(c.type, 'clientType')
-          },
-          { 
-            label: 'Estado', 
-            render: (c: Client) => translateToSpanish(c.status, 'status')
-          },
-          { label: 'Creado', render: (c: Client) => formatDate(c.createdAt) },
-          {
-            label: 'Acciones',
-            render: (c: Client) => (
-              <>
-                <Tooltip title="Editar">
-                  <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleEdit(c)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Historial de compras">
-                  <IconButton color="secondary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleShowHistory(c)}>
-                    <HistoryIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </>
-            ),
-            align: 'center',
-          },
-        ]}
-        data={clients}
-        getRowKey={(c: Client) => c.id}
-        emptyMessage={emptyMessage}
-      />
-
-      <EditUserDialog
-        open={open}
-        selectedUser={selectedClient}
-        onClose={handleClose}
-        onSuccess={handleSuccess}
-      />
-
-      <PurchaseHistoryDialog
-        open={!!historyClient}
-        clientId={historyClient?.id}
-        clientName={historyClient?.name}
-        onClose={handleCloseHistory}
-      />
     </Box>
   );
 }

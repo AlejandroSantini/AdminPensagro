@@ -20,6 +20,7 @@ export interface Product {
 }
 
 export interface ProductFormData {
+  id?: number;
   sku: string;
   name: string;
   description: string;

@@ -1,28 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, MenuItem, FormControlLabel, Checkbox, CircularProgress, Alert, IconButton } from '@mui/material';
+import { Box, Typography, MenuItem, FormControlLabel, Checkbox, CircularProgress, Alert, IconButton } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { CustomPaper } from '../../../../components/common/CustomPaper';
 import { Input } from '../../../../components/common/Input';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import api from '../../../../services/api';
 import { getProductByIdRoute, putProductRoute, postProductRoute } from '../../../../services/products';
 import { getCategoriesRoute, getSubcategoriesRoute } from '../../../../services/categories';
-import type { Product } from '../../../../../types/product';
-
-export interface ProductFormData {
-  id?: number;
-  sku: string;
-  name: string;
-  description: string;
-  price_usd: number;
-  stock: number;
-  iva: number;
-  featured: boolean;
-  categoryId: number;
-  subcategoryId: number;
-}
+import type { Product, ProductFormData } from '../../../../../types/product';
 
 export default function ProductForm() {
   const navigate = useNavigate();
@@ -196,7 +184,7 @@ export default function ProductForm() {
           {isEditMode ? `Editar Producto: ${product?.name}` : 'Nuevo Producto'}
         </Typography>
       </Box>
-      <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0', background: '#fff', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}>
+      <CustomPaper>
         <Box component="form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
           <Controller
             name="sku"
@@ -308,7 +296,7 @@ export default function ProductForm() {
             </ContainedButton>
           </Box>
         </Box>
-      </Paper>
+      </CustomPaper>
     </Box>
   );
 }

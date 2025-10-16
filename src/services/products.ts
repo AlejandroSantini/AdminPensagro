@@ -20,3 +20,4 @@ export const searchProductsRoute = (query?: string): string => {
 };
 
 export const updateProductStockRoute = (id: number | string): string => `${PRODUCTS_BASE}/${id}/stock`;
+

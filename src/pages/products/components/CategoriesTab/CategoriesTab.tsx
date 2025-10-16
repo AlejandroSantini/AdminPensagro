@@ -103,14 +103,16 @@ export default function CategoriesTab() {
             label: 'Acciones',
             render: (c: Category) => (
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Tooltip title="Editar">
-                  <IconButton color="primary" size="small" onClick={() => handleEditCategory(c)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
                 {c.status === 'active' && (
                   <Tooltip title="Archivar">
-                    <IconButton color="secondary" size="small" onClick={() => handleArchive(c)}>
+                    <IconButton 
+                      color="secondary" 
+                      size="small" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleArchive(c);
+                      }}
+                    >
                       <ArchiveIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -122,6 +124,7 @@ export default function CategoriesTab() {
         ]}
         data={categories}
         getRowKey={(c: Category) => c.id}
+        onRowClick={handleEditCategory}
         emptyMessage={loading ? "Cargando categorías..." : "No hay categorías"}
       />
       

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddIcon from '@mui/icons-material/Add';
+import { CustomPaper } from '../../components/common/CustomPaper';
 import { Table } from '../../components/common/Table';
 import { ContainedButton } from '../../components/common/ContainedButton';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -75,16 +76,7 @@ export default function Sales() {
       <Typography variant="h5" color="text.primary" sx={{ flexGrow: 1, mb: 2 }}>
         Ventas
       </Typography>
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          borderRadius: 3,
-          backgroundColor: '#fff',
-          border: '1px solid #e0e0e0',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-        }}
-      >
+      <CustomPaper>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <Tooltip title="Exportar CSV">
             <IconButton color="primary" onClick={handleExport} sx={{ mr: 2 }}>
@@ -115,25 +107,14 @@ export default function Sales() {
               return s.status;
             } },
             { label: 'Motivo', render: s => s.motivo || '-' },
-            {
-              label: '',
-              render: s => (
-                <Tooltip title="Editar venta">
-                  <IconButton color="primary" size="small" sx={{ boxShadow: 'none' }} onClick={() => handleEditSale(s)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              ),
-              align: 'right',
-              width: 48,
-            },
           ]}
           data={filteredSales}
           getRowKey={s => s.id}
+          onRowClick={handleEditSale}
           emptyMessage="No hay ventas"
         />
 
-      </Paper>
+      </CustomPaper>
     </Box>
   );
 }

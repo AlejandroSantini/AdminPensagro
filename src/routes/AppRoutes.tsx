@@ -11,6 +11,7 @@ import Blog from "../pages/blog/Blog";
 import BusinessSettings from "../pages/businessSettings/BusinessSettings";
 import Layout from "../components/layout/Layout";
 import ProductForm from "../pages/products/components/ProductsTab/ProductForm";
+import ComboForm from "../pages/products/components/CombosTab/ComboForm";
 
 export default function AppRoutes() {
   return (
@@ -86,6 +87,22 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <ProductForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/productos/combo/nuevo" 
+          element={
+            <ProtectedRoute>
+              <ComboForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/productos/combo/:id" 
+          element={
+            <ProtectedRoute>
+              <ComboForm />
             </ProtectedRoute>
           } 
         />

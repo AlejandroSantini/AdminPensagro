@@ -1,5 +1,6 @@
-import { Table as MuiTable, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Table as MuiTable, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import type { ReactNode } from 'react';
+import { CustomPaper } from './CustomPaper';
 
 export interface TableColumn<T> {
   label: string;
@@ -20,12 +21,9 @@ export interface TableProps<T> {
 export function Table<T>({ columns, data, getRowKey, onRowClick, emptyMessage = 'Sin datos', sx }: TableProps<T>) {
   return (
     <TableContainer
-      component={Paper}
+      component={CustomPaper}
       sx={{
-        borderRadius: 3,
-        border: '1px solid #e0e0e0',
-        background: '#fff',
-        boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
+        p: 0,
         ...sx,
       }}
     >

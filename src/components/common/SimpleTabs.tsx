@@ -1,6 +1,7 @@
 
-import { Tabs, Tab, Box, Paper } from '@mui/material';
+import { Tabs, Tab, Box } from '@mui/material';
 import { useState } from 'react';
+import { CustomPaper } from './CustomPaper';
 
 export interface SimpleTab {
   label: string;
@@ -9,12 +10,13 @@ export interface SimpleTab {
 
 interface SimpleTabsProps {
   tabs: SimpleTab[];
+  defaultTab?: number;
 }
 
-export function SimpleTabs({ tabs }: SimpleTabsProps) {
-  const [tab, setTab] = useState(0);
+export function SimpleTabs({ tabs, defaultTab = 0 }: SimpleTabsProps) {
+  const [tab, setTab] = useState(defaultTab);
   return (
-    <Paper elevation={0} sx={{ p: 2, borderRadius: 3, background: '#fff', border: '1px solid #e0e0e0', boxShadow: '0 2px 8px 0 rgba(0,0,0,0.02)' }}>
+    <CustomPaper sx={{ p: 2 }}>
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
@@ -44,6 +46,6 @@ export function SimpleTabs({ tabs }: SimpleTabsProps) {
         ))}
       </Tabs>
       <Box sx={{ mt: 1.2 }}>{tabs[tab].content}</Box>
-    </Paper>
+    </CustomPaper>
   );
 }
