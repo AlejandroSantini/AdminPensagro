@@ -16,10 +16,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { CustomPaper } from '../../../../components/common/CustomPaper';
 import { Input } from '../../../../components/common/Input';
-import { Table } from '../../../../components/common/Table';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
-import { AddProductModal } from './AddProductModal';
+import { ProductsTable } from '../../../../components/common/ProductsTable';
+import { AddProductModal, type ProductItem } from '../../../../components/modals/AddProductModal';
 import api from '../../../../services/api';
 import { getComboByIdRoute, postComboRoute, putComboRoute } from '../../../../services/combos';
 import type { Combo, ComboFormData, ProductRef } from '../../../../../types/combo';
@@ -50,7 +50,8 @@ export default function ComboForm() {
 
   useEffect(() => {
     const total = selectedProducts.reduce((sum, product) => {
-      return sum + (product.price || 0);
+      const quantity = product.quantity || 1;
+      return sum + ((product.price || 0) * quantity);
     }, 0);
     
     setCalculatedPrice(total);
@@ -68,10 +69,17 @@ export default function ComboForm() {
     setModalOpen(false);
   };
   
-  const handleProductSelect = (product: ProductRef) => {
-    const newSelectedIds = [...selectedProductIds, product.id];
+  const handleProductSelect = (product: ProductItem) => {
+    // Convert ProductItem to ProductRef
+    const productToAdd: ProductRef = {
+      id: product.id,
+      name: product.name,
+      price: parseFloat(product.price?.toString() || '0')
+    };
+    
+    const newSelectedIds = [...selectedProductIds, productToAdd.id];
     setValue('products', newSelectedIds);
-    setSelectedProducts(prev => [...prev, product]);
+    setSelectedProducts(prev => [...prev, productToAdd]);
     setModalOpen(false);
   };
   
@@ -79,6 +87,14 @@ export default function ComboForm() {
     const newSelectedIds = selectedProductIds.filter(id => id !== productId);
     setValue('products', newSelectedIds);
     setSelectedProducts(prev => prev.filter(p => p.id !== productId));
+  };
+  
+  const handleUpdateQuantity = (productId: number, quantity: number) => {
+    if (quantity <= 0) return;
+    
+    setSelectedProducts(prev => 
+      prev.map(p => p.id === productId ? { ...p, quantity } : p)
+    );
   };
 
   useEffect(() => {
@@ -139,7 +155,10 @@ export default function ComboForm() {
       const apiPayload = {
         name: data.name,
         description: data.description || '',
-        products: selectedProducts.map(product => product.id),
+        products: selectedProducts.map(product => ({
+          id: product.id,
+          quantity: product.quantity || 1
+        })),
         total_price: data.price,
         featured: data.featured,
         active: true
@@ -324,49 +343,17 @@ export default function ComboForm() {
             </Box>
             
             <Box sx={{ flex: 1 }}>
-              <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="subtitle1">Productos seleccionados</Typography>
-                <ContainedButton startIcon={<AddIcon />} onClick={handleOpenModal} size="small">
-                  Añadir un producto
-                </ContainedButton>
-              </Box>
-              
-              <Table
-                columns={[
-                  { label: 'Nombre', render: (p: ProductRef) => p.name },
-                  { label: 'Precio', render: (p: ProductRef) => `$${p.price || 0}` },
-                  {
-                    label: 'Acciones',
-                    render: (p: ProductRef) => (
-                      <Tooltip title="Eliminar">
-                        <IconButton 
-                          color="error" 
-                          size="small" 
-                          onClick={() => handleRemoveProduct(p.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    ),
-                    align: 'center',
-                    width: '100px'
-                  }
-                ]}
-                data={selectedProducts}
-                getRowKey={(p: ProductRef) => p.id}
+              <ProductsTable
+                products={selectedProducts}
+                onAddProduct={handleOpenModal}
+                onRemoveProduct={handleRemoveProduct}
+                onUpdateQuantity={handleUpdateQuantity}
+                allowQuantityEdit={true} 
+                showTotal={true}
                 emptyMessage="No hay productos seleccionados"
-                sx={{ boxShadow: 'none' }}
+                title="Productos seleccionados"
+                errors={errors.products?.message}
               />
-              
-              {selectedProducts.length > 0 && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Total calculado: ${calculatedPrice.toFixed(2)}
-                </Typography>
-              )}
-              
-              {!!errors.products && (
-                <Alert severity="error" sx={{ mt: 2 }}>{errors.products.message}</Alert>
-              )}
               
               <Controller
                 name="products"

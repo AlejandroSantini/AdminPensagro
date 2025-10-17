@@ -8,18 +8,26 @@ import {
   Paper
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { Input } from '../../../../components/common/Input';
-import { Select } from '../../../../components/common/Select';
-import { Table } from '../../../../components/common/Table';
-import { OutlinedButton } from '../../../../components/common/OutlinedButton';
-import api from '../../../../services/api';
-import { getProductsRoute } from '../../../../services/products';
-import type { ProductRef } from '../../../../../types/combo';
+import { Input } from '../common/Input';
+import { Select } from '../common/Select';
+import { Table } from '../common/Table';
+import { OutlinedButton } from '../common/OutlinedButton';
+import api from '../../services/api';
+import { getProductsRoute } from '../../services/products';
+
+export interface ProductItem {
+  id: number;
+  name: string;
+  price?: number;
+  price_usd?: number | string;
+  sku?: string;
+  stock?: number;
+}
 
 interface AddProductModalProps {
   open: boolean;
   onClose: () => void;
-  onProductSelect: (product: ProductRef) => void;
+  onProductSelect: (product: ProductItem) => void;
 }
 
 export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductModalProps) => {
@@ -52,10 +60,12 @@ export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductMo
   };
 
   const handleSelectProduct = (product: any) => {
-    const productToAdd: ProductRef = {
+    const productToAdd: ProductItem = {
       id: product.id,
       name: product.name,
-      price: parseFloat(product.price_usd || 0)
+      price: parseFloat(product.price_usd || 0),
+      sku: product.sku,
+      stock: product.stock
     };
     
     onProductSelect(productToAdd);

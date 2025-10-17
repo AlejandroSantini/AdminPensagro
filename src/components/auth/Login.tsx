@@ -11,9 +11,6 @@ import {
   Lock,
 } from "@mui/icons-material";
 
-
-
-
 interface LoginFormData {
   email: string;
   password: string;

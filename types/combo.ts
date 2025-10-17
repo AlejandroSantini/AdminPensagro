@@ -2,6 +2,7 @@ export interface ProductRef {
   id: number;
   name: string;
   price?: number;
+  quantity?: number;
 }
 
 export interface ApiCombo {

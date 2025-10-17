@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
 import { CustomPaper } from '../../components/common/CustomPaper';
 import { Table } from '../../components/common/Table';
 import { ContainedButton } from '../../components/common/ContainedButton';
+import { OutlinedButton } from '../../components/common/OutlinedButton';
 import { useForm, FormProvider } from 'react-hook-form';
 import { SalesFilters } from './components/SalesFilters';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import { getSalesRoute } from '../../services/sales';
 
 // Mock data
 const MOCK_CLIENTS = [
@@ -47,17 +51,62 @@ const MOCK_SALES = [
 export default function Sales() {
   const navigate = useNavigate();
   const [sales, setSales] = useState(MOCK_SALES);
-  const methods = useForm({ defaultValues: { search: '', status: '', motivo: '', client: '' } });
+  const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const methods = useForm({ 
+    defaultValues: { 
+      search: '', 
+      status: '', 
+      motivo: '', 
+      client: '' 
+    } 
+  });
+  
   const { handleSubmit, watch } = methods;
 
-  // Filtros (mock, solo filtra por cliente y estado)
-  const filters = watch();
-  const filteredSales = sales.filter(sale => {
-    const matchClient = !filters.client || sale.client === MOCK_CLIENTS.find(c => c.value === filters.client)?.label;
-    const matchStatus = !filters.status || sale.status === filters.status;
-    const matchSearch = !filters.search || sale.client.toLowerCase().includes(filters.search.toLowerCase()) || sale.product.toLowerCase().includes(filters.search.toLowerCase()) || sale.cuit.includes(filters.search);
-    return matchClient && matchStatus && matchSearch;
-  });
+  // Define the filter type for better type safety
+  interface SalesFilters {
+    search: string;
+    status: string;
+    motivo: string;
+    client: string;
+  }
+
+  // Load sales with form values as an argument instead of a dependency
+  const loadSales = useCallback(async (filterValues: SalesFilters) => {
+    setLoading(true);
+    try {
+      // En una app real se obtendría de la API
+      // const res = await api.get(getSalesRoute(), { params: filterValues });
+      // setSales(res.data.data || []);
+      
+      // Filtramos el mock data
+      const filteredSales = MOCK_SALES.filter(sale => {
+        const matchClient = !filterValues.client || sale.client === MOCK_CLIENTS.find(c => c.value === filterValues.client)?.label;
+        const matchStatus = !filterValues.status || sale.status === filterValues.status;
+        const matchSearch = !filterValues.search || sale.client.toLowerCase().includes(filterValues.search.toLowerCase()) || sale.product.toLowerCase().includes(filterValues.search.toLowerCase()) || sale.cuit.includes(filterValues.search);
+        return matchClient && matchStatus && matchSearch;
+      });
+      
+      setSales(filteredSales);
+    } catch (e) {
+      console.error('Error al cargar ventas:', e);
+      setSales([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  // Apply filters when user submits the form
+  const onSubmit = (data: SalesFilters) => {
+    loadSales(data);
+  };
+
+  // Initial load of sales
+  useEffect(() => {
+    loadSales({ search: '', status: '', motivo: '', client: '' });
+  }, [loadSales]);
 
   const handleExport = () => {
     // Implementar la lógica de exportación aquí
@@ -77,21 +126,41 @@ export default function Sales() {
         Ventas
       </Typography>
       <CustomPaper>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Tooltip title="Exportar CSV">
-            <IconButton color="primary" onClick={handleExport} sx={{ mr: 2 }}>
-              <DownloadIcon/>
-            </IconButton>
-          </Tooltip>
-          <ContainedButton startIcon={<AddIcon />} onClick={handleNewSale}>
-            Cargar venta offline
-          </ContainedButton>
+        <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
+          <OutlinedButton 
+            icon={<FilterListIcon />} 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+          </OutlinedButton>
+          <Box display="flex" alignItems="center">
+            <Tooltip sx={{ mr: 1 }} title="Exportar CSV">
+              <IconButton color="primary" onClick={handleExport}>
+                <DownloadIcon/>
+              </IconButton>
+            </Tooltip>
+            <ContainedButton startIcon={<AddIcon />} onClick={handleNewSale}>
+              Cargar venta
+            </ContainedButton>
+          </Box>
         </Box>
+        
         <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(() => {})}>
-            <SalesFilters clientOptions={MOCK_CLIENTS} />
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <SalesFilters clientOptions={MOCK_CLIENTS} visible={showFilters} />
+            {showFilters && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <ContainedButton 
+                  type="submit" 
+                  startIcon={<SearchIcon />}
+                >
+                  Aplicar filtros
+                </ContainedButton>
+              </Box>
+            )}
           </form>
         </FormProvider>
+        
         <Table
           columns={[
             { label: 'Fecha', render: s => s.date },
@@ -108,12 +177,11 @@ export default function Sales() {
             } },
             { label: 'Motivo', render: s => s.motivo || '-' },
           ]}
-          data={filteredSales}
+          data={sales}
           getRowKey={s => s.id}
           onRowClick={handleEditSale}
-          emptyMessage="No hay ventas"
+          emptyMessage={loading ? "Cargando..." : "No hay ventas"}
         />
-
       </CustomPaper>
     </Box>
   );

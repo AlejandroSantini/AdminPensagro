@@ -58,7 +58,6 @@ export default function Register({ onRegister, onSwitchToLogin }: RegisterProps)
     setLoading(true);
 
     try {
-      // Simular registro (aquí irías a tu API)
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       if (onRegister) {
