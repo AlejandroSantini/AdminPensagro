@@ -14,7 +14,7 @@ import { AddProductModal } from '../../../components/modals/AddProductModal';
 import type { ProductItem } from '../../../components/modals/AddProductModal';
 import { CustomPaper } from '../../../components/common/CustomPaper';
 import api from '../../../services/api';
-import { getSaleByIdRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
+import { getSaleByIdRoute, getSaleProductsRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
 import { getClientsRoute } from '../../../services/clients';
 import { getCouponsRoute } from '../../../services/coupons';
 
@@ -98,30 +98,51 @@ export default function SaleForm() {
         
         try {
           const response = await api.get(getSaleByIdRoute(id));
-          if (response.data && response.data.status === "success") {
+          if (response.data && (response.data.ok || response.data.status === "success")) {
             const saleData = response.data.data;
             
-            const products = saleData.products?.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              price: parseFloat(p.price),
-              quantity: p.quantity || 1,
-              sku: p.sku
-            })) || [];
-            
-            setSelectedProducts(products);
-            
-            reset({
-              client_id: saleData.client_id.toString(),
-              user_id: saleData.user_id.toString(),
-              products: products,
-              total: parseFloat(saleData.total),
-              exchange_rate: parseFloat(saleData.exchange_rate),
-              coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
-              discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
-              comment: saleData.comment || '',
-              active: saleData.active
-            });
+            try {
+              const productsResponse = await api.get(getSaleProductsRoute(id));
+              const productsData = productsResponse.data && productsResponse.data.data ? 
+                productsResponse.data.data : [];
+              
+              const products = productsData.map((p: any) => ({
+                id: p.product_id || p.id,
+                name: p.name || p.product_name || `Producto #${p.product_id || p.id}`,
+                price: parseFloat(p.price || '0'),
+                quantity: p.quantity || 1,
+                sku: p.sku || ''
+              }));
+              
+              setSelectedProducts(products);
+              
+              reset({
+                client_id: saleData.client_id.toString(),
+                user_id: saleData.user_id.toString(),
+                products: products,
+                total: parseFloat(saleData.total),
+                exchange_rate: parseFloat(saleData.exchange_rate),
+                coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
+                discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
+                comment: saleData.comment || '',
+                active: saleData.active !== undefined ? saleData.active : true
+              });
+            } catch (productErr) {
+              console.error("Error loading sale products:", productErr);
+              setSelectedProducts([]);
+              
+              reset({
+                client_id: saleData.client_id.toString(),
+                user_id: saleData.user_id.toString(),
+                products: [],
+                total: parseFloat(saleData.total),
+                exchange_rate: parseFloat(saleData.exchange_rate),
+                coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
+                discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
+                comment: saleData.comment || '',
+                active: saleData.active !== undefined ? saleData.active : true
+              });
+            }
           } else {
             setError("No se pudo cargar la venta");
           }
@@ -215,7 +236,6 @@ export default function SaleForm() {
     setError(null);
     
     try {
-
       const calculatedTotal = calculateTotal();
       
       const apiPayload = {
@@ -223,14 +243,13 @@ export default function SaleForm() {
         user_id: parseInt(data.user_id),
         total: data.total || calculatedTotal,
         exchange_rate: data.exchange_rate,
+        products: selectedProducts.map(p => ({
+          product_id: p.id,
+          quantity: p.quantity
+        })),
         coupon_id: data.coupon_id ? parseInt(data.coupon_id) : null,
         discount_payment_method_id: data.discount_payment_method_id ? parseInt(data.discount_payment_method_id) : null,
-        comment: data.comment,
-        active: data.active,
-        products: selectedProducts.map(p => ({
-          id: p.id,
-          quantity: p.quantity
-        }))
+        comment: data.comment
       };
       
       if (isEditMode && id) {

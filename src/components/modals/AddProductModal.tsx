@@ -52,11 +52,15 @@ export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductMo
     }
   }, [filters]);
 
-  const handleFilterChange = (field: keyof typeof filters, value: string) => {
+  const handleFilterInputChange = (field: keyof typeof filters, value: string) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+  
+  const handleFilterApply = () => {
+    loadProducts();
   };
 
   const handleSelectProduct = (product: any) => {
@@ -103,14 +107,18 @@ export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductMo
                 label="Buscar producto"
                 variant="outlined"
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={(e) => handleFilterInputChange('search', e.target.value)}
+                onBlur={handleFilterApply}
                 placeholder="Nombre, SKU..."
                 sx={{ mt: 0, mb: 0 }}
               />
               <Select
                 label="Estado"
                 value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value as string)}
+                onChange={(e) => {
+                  handleFilterInputChange('status', e.target.value as string);
+                  handleFilterApply();
+                }}
                 options={[
                   { value: '', label: 'Todos' },
                   { value: 'active', label: 'Activo' },

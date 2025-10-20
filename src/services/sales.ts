@@ -5,6 +5,8 @@ export const getSalesRoute = (): string => SALES_BASE;
 
 export const getSaleByIdRoute = (id: number | string): string => `${SALES_BASE}/${id}`;
 
+export const getSaleProductsRoute = (id: number | string): string => `${SALES_BASE}/${id}/products`;
+
 export const postSaleRoute = (): string => SALES_BASE;
 
 export const putSaleRoute = (id: number | string): string => `${SALES_BASE}/${id}`;

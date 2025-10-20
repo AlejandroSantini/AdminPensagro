@@ -12,84 +12,45 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { SalesFilters } from './components/SalesFilters';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { getSalesRoute } from '../../services/sales';
-
-// Mock data
-const MOCK_CLIENTS = [
-  { label: 'Juan Perez', value: '1' },
-  { label: 'Ana Lopez', value: '2' },
-];
-const MOCK_PRODUCTS = [
-  { label: 'Producto 1', value: 'SKU001' },
-  { label: 'Producto 2', value: 'SKU002' },
-];
-const MOCK_SALES = [
-  {
-    id: 1,
-    date: '2025-10-10',
-    client: 'Juan Perez',
-    cuit: '20-12345678-9',
-    product: 'Producto 1',
-    quantity: 2,
-    price: 10,
-    status: 'pendiente',
-    motivo: '',
-  },
-  {
-    id: 2,
-    date: '2025-10-11',
-    client: 'Ana Lopez',
-    cuit: '27-87654321-0',
-    product: 'Producto 2',
-    quantity: 1,
-    price: 20,
-    status: 'confirmado',
-    motivo: '',
-  },
-];
+import { getSalesRoute, exportSalesRoute } from '../../services/sales';
+import { getClientsRoute } from '../../services/clients';
 
 export default function Sales() {
   const navigate = useNavigate();
-  const [sales, setSales] = useState(MOCK_SALES);
+  const [sales, setSales] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [clientOptions, setClientOptions] = useState<{label: string, value: string}[]>([]);
   
   const methods = useForm({ 
     defaultValues: { 
       search: '', 
-      status: '', 
-      motivo: '', 
-      client: '' 
+      client_id: '', 
+      discount_payment_method_id: '' 
     } 
   });
   
   const { handleSubmit, watch } = methods;
 
-  // Define the filter type for better type safety
   interface SalesFilters {
     search: string;
-    status: string;
-    motivo: string;
-    client: string;
+    client_id: string;
+    discount_payment_method_id: string;
   }
 
-  // Load sales with form values as an argument instead of a dependency
   const loadSales = useCallback(async (filterValues: SalesFilters) => {
     setLoading(true);
     try {
-      // En una app real se obtendría de la API
-      // const res = await api.get(getSalesRoute(), { params: filterValues });
-      // setSales(res.data.data || []);
-      
-      // Filtramos el mock data
-      const filteredSales = MOCK_SALES.filter(sale => {
-        const matchClient = !filterValues.client || sale.client === MOCK_CLIENTS.find(c => c.value === filterValues.client)?.label;
-        const matchStatus = !filterValues.status || sale.status === filterValues.status;
-        const matchSearch = !filterValues.search || sale.client.toLowerCase().includes(filterValues.search.toLowerCase()) || sale.product.toLowerCase().includes(filterValues.search.toLowerCase()) || sale.cuit.includes(filterValues.search);
-        return matchClient && matchStatus && matchSearch;
-      });
-      
-      setSales(filteredSales);
+      const res = await api.get(getSalesRoute(), { params: filterValues });
+      // Maneja el nuevo formato de respuesta: { ok: true, data: [...] }
+      if (res.data && res.data.ok && Array.isArray(res.data.data)) {
+        setSales(res.data.data);
+      } else if (res.data && res.data.status === "success" && Array.isArray(res.data.data)) {
+        // Formato anterior por compatibilidad
+        setSales(res.data.data);
+      } else {
+        setSales([]);
+      }
     } catch (e) {
       console.error('Error al cargar ventas:', e);
       setSales([]);
@@ -98,18 +59,52 @@ export default function Sales() {
     }
   }, []);
   
-  // Apply filters when user submits the form
   const onSubmit = (data: SalesFilters) => {
     loadSales(data);
   };
 
-  // Initial load of sales
-  useEffect(() => {
-    loadSales({ search: '', status: '', motivo: '', client: '' });
-  }, [loadSales]);
+  const loadClients = useCallback(async () => {
+    try {
+      const res = await api.get(getClientsRoute());
+      const clients = res.data.data || [];
+      
+      const options = clients.map((client: any) => ({
+        label: client.user_name || client.user_email || `Cliente ${client.id}`,
+        value: client.id.toString()
+      }));
+      setClientOptions(options);
+    } catch (e) {
+      console.error('Error al cargar clientes:', e);
+      setClientOptions([]);
+    }
+  }, []);
 
-  const handleExport = () => {
-    // Implementar la lógica de exportación aquí
+  useEffect(() => {
+    loadSales({ search: '', client_id: '', discount_payment_method_id: '' });
+    loadClients();
+  }, [loadSales, loadClients]);
+
+  const handleExport = async () => {
+    try {
+      const formValues = methods.getValues();
+      const response = await api.get(exportSalesRoute(), { 
+        params: formValues,
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ventas-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Error al exportar ventas:', e);
+    }
   };
 
   const handleNewSale = () => {
@@ -147,38 +142,77 @@ export default function Sales() {
         
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <SalesFilters clientOptions={MOCK_CLIENTS} visible={showFilters} />
-            {showFilters && (
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-                <ContainedButton 
-                  type="submit" 
-                  startIcon={<SearchIcon />}
-                >
-                  Aplicar filtros
-                </ContainedButton>
-              </Box>
-            )}
+            <SalesFilters 
+              clientOptions={clientOptions} 
+              visible={showFilters} 
+              onFilterChange={handleSubmit(onSubmit)} 
+            />
           </form>
         </FormProvider>
         
         <Table
           columns={[
-            { label: 'Fecha', render: s => s.date },
-            { label: 'Cliente', render: s => s.client },
-            { label: 'CUIT', render: s => s.cuit },
-            { label: 'Producto', render: s => s.product },
-            { label: 'Cantidad', render: s => s.quantity },
-            { label: 'Precio', render: s => `$${s.price}` },
-            { label: 'Estado', render: s => {
-              if (s.status === 'pendiente') return 'Pendiente de pago';
-              if (s.status === 'confirmado') return 'Pago confirmado';
-              if (s.status === 'devolucion') return 'Devolución parcial';
-              return s.status;
-            } },
-            { label: 'Motivo', render: s => s.motivo || '-' },
+            { 
+              label: 'ID', 
+              render: s => s.id || '-'
+            },
+            { 
+              label: 'Fecha', 
+              render: s => {
+                const date = s.created_at;
+                if (!date) return '-';
+                return new Date(date).toLocaleDateString();
+              }
+            },
+            { 
+              label: 'Cliente', 
+              render: s => {
+                // Encontrar el cliente correspondiente por ID
+                const client = clientOptions.find(c => c.value === s.client_id?.toString());
+                return client ? client.label : `Cliente #${s.client_id}`;
+              }
+            },
+            { 
+              label: 'Total', 
+              render: s => {
+                const total = parseFloat(s.total || '0');
+                return `$${total.toFixed(2)}`;
+              }
+            },
+            { 
+              label: 'Tasa de Cambio', 
+              render: s => {
+                const rate = parseFloat(s.exchange_rate || '1');
+                return rate.toFixed(2);
+              }
+            },
+            { 
+              label: 'Método de Pago', 
+              render: s => {
+                const methodId = s.discount_payment_method_id;
+                if (!methodId) return '-';
+                
+                // Map payment method IDs to names
+                const paymentMethods: Record<string, string> = {
+                  '1': 'Efectivo',
+                  '2': 'Tarjeta de Crédito',
+                  '3': 'Transferencia',
+                };
+                
+                return paymentMethods[methodId] || `Método #${methodId}`;
+              }
+            },
+            { 
+              label: 'Comentario', 
+              render: s => s.comment || '-'
+            },
+            { 
+              label: 'Estado', 
+              render: s => s.active ? 'Activo' : 'Inactivo'
+            },
           ]}
           data={sales}
-          getRowKey={s => s.id}
+          getRowKey={s => s.id || `sale-${s.created_at}`}
           onRowClick={handleEditSale}
           emptyMessage={loading ? "Cargando..." : "No hay ventas"}
         />

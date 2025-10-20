@@ -8,7 +8,13 @@ export interface SalesFiltersProps {
   visible: boolean;
 }
 
-export function SalesFilters({ clientOptions, visible }: SalesFiltersProps) {
+export interface SalesFiltersProps {
+  clientOptions: { label: string; value: string }[];
+  visible: boolean;
+  onFilterChange?: () => void;
+}
+
+export function SalesFilters({ clientOptions, visible, onFilterChange }: SalesFiltersProps) {
   const { control } = useFormContext();
 
   if (!visible) return null;
@@ -21,33 +27,20 @@ export function SalesFilters({ clientOptions, visible }: SalesFiltersProps) {
           control={control}
           render={({ field }) => (
             <Input 
-              label="Buscar por cliente, producto, CUIT..." 
+              label="Buscar" 
               variant="outlined" 
-              placeholder="Nombre, CUIT, producto..." 
+              placeholder="ID, Comentario..." 
               {...field} 
-              sx={{ mt: 0, mb: 0 }} 
-            />
-          )}
-        />
-        <Controller
-          name="status"
-          control={control}
-          render={({ field }) => (
-            <Select
-              label="Estado"
-              options={[
-                { value: '', label: 'Todos' },
-                { value: 'pendiente', label: 'Pendiente de pago' },
-                { value: 'confirmado', label: 'Pago confirmado' },
-                { value: 'devolucion', label: 'Devolución parcial' },
-              ]}
-              {...field}
               sx={{ mt: 0, mb: 0 }}
+              onBlur={(e) => {
+                field.onBlur();
+                onFilterChange?.();
+              }}
             />
           )}
         />
         <Controller
-          name="client"
+          name="client_id"
           control={control}
           render={({ field }) => (
             <Select
@@ -58,23 +51,31 @@ export function SalesFilters({ clientOptions, visible }: SalesFiltersProps) {
               ]}
               {...field}
               sx={{ mt: 0, mb: 0 }}
+              onChange={(e) => {
+                field.onChange(e);
+                onFilterChange?.();
+              }}
             />
           )}
         />
         <Controller
-          name="motivo"
+          name="discount_payment_method_id"
           control={control}
           render={({ field }) => (
             <Select
-              label="Motivo"
+              label="Método de Pago"
               options={[
                 { value: '', label: 'Todos' },
-                { value: 'cambio', label: 'Cambio' },
-                { value: 'falla', label: 'Falla' },
-                { value: 'otro', label: 'Otro' },
+                { value: '1', label: 'Efectivo' },
+                { value: '2', label: 'Tarjeta de crédito' },
+                { value: '3', label: 'Transferencia' },
               ]}
               {...field}
               sx={{ mt: 0, mb: 0 }}
+              onChange={(e) => {
+                field.onChange(e);
+                onFilterChange?.();
+              }}
             />
           )}
         />

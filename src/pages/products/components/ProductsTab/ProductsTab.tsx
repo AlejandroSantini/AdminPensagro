@@ -70,11 +70,15 @@ export default function ProductTab() {
     }
   };
   
-  const handleFilterChange = (field: keyof typeof filters, value: string) => {
+  const handleFilterInputChange = (field: keyof typeof filters, value: string) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+  
+  const handleFilterApply = () => {
+    loadProducts();
   };
 
   useEffect(() => {
@@ -108,14 +112,18 @@ export default function ProductTab() {
               label="Buscar producto"
               variant="outlined"
               value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              onChange={(e) => handleFilterInputChange('search', e.target.value)}
+              onBlur={handleFilterApply}
               placeholder="Nombre, SKU..."
               sx={{ mt: 0, mb: 0 }}
             />
             <Select
               label="Estado"
               value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value as string)}
+              onChange={(e) => {
+                handleFilterInputChange('status', e.target.value as string);
+                handleFilterApply(); // Apply immediately for select fields
+              }}
               options={[
                 { value: '', label: 'Todos' },
                 { value: 'active', label: 'Activo' },
@@ -128,7 +136,8 @@ export default function ProductTab() {
               variant="outlined"
               type="number"
               value={filters.stock}
-              onChange={(e) => handleFilterChange('stock', e.target.value)}
+              onChange={(e) => handleFilterInputChange('stock', e.target.value)}
+              onBlur={handleFilterApply}
               sx={{ mt: 0, mb: 0 }}
             />
           </Box>
