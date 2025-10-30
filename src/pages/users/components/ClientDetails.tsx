@@ -22,16 +22,24 @@ const defaultValues: ClientFormValues = {
   id: 0,
   userId: undefined,
   name: '',
+  lastName: '',
+  fullName: '',
   email: '',
   type: 'retailer',
   clientType: 'retailer',
+  razonSocial: '',
+  condicionIVA: 'Consumidor Final',
+  dni: '',
+  cuit: '',
+  domicilio: '',
+  phone: '',
+  // Campos legacy
   fiscalType: '',
   fiscalCondition: '',
+  companyName: '',
   status: 'active',
   createdAt: '',
   updatedAt: '',
-  phone: '',
-  companyName: '',
 };
 
 const normalizePurchase = (raw: any): ClientPurchase => {
@@ -108,21 +116,37 @@ export function ClientDetails({ client, onSave, onCancel }: ClientDetailsProps) 
     if (!client) return;
     
     const clientType = data.type || data.clientType || 'retailer';
+    
+    // Si es consumidor final y no tiene razón social, usar Nombre + Apellido
+    let razonSocial = data.razonSocial;
+    if (!razonSocial && data.condicionIVA === 'Consumidor Final') {
+      razonSocial = `${data.name} ${data.lastName || ''}`.trim();
+    }
 
     const payload = {
       name: data.name,
+      last_name: data.lastName ?? '',
+      lastName: data.lastName ?? '',
+      razon_social: razonSocial ?? '',
+      razonSocial: razonSocial ?? '',
+      condicion_iva: data.condicionIVA ?? 'Consumidor Final',
+      condicionIVA: data.condicionIVA ?? 'Consumidor Final',
+      dni: data.dni ?? '',
+      cuit: data.cuit ?? '',
+      domicilio: data.domicilio ?? '',
       email: data.email,
+      phone: data.phone ?? '',
       type: clientType === 'retailer' ? 'minorista' : 'mayorista',
       tipo: clientType === 'retailer' ? 'minorista' : 'mayorista',
       client_type: clientType,
-      fiscalType: data.fiscalType ?? '',
-      fiscal_type: data.fiscalType ?? '',
-      fiscal_condition: data.fiscalCondition ?? data.fiscalType ?? '',
       status: data.status,
-      phone: data.phone ?? '',
-      companyName: data.companyName ?? '',
-      company_name: data.companyName ?? '',
       user_id: data.userId,
+      // Campos legacy para compatibilidad
+      fiscalType: data.condicionIVA ?? '',
+      fiscal_type: data.condicionIVA ?? '',
+      fiscal_condition: data.condicionIVA ?? '',
+      companyName: razonSocial ?? '',
+      company_name: razonSocial ?? '',
     };
     
     setError(null);
@@ -177,7 +201,93 @@ export function ClientDetails({ client, onSave, onCancel }: ClientDetailsProps) 
               control={control}
               rules={{ required: 'El nombre es obligatorio' }}
               render={({ field }) => (
-                <Input label="Nombre" {...field} variant="outlined" error={!!errors.name} helperText={errors.name?.message} />
+                <Input 
+                  label="Nombre" 
+                  {...field} 
+                  variant="outlined" 
+                  error={!!errors.name} 
+                  helperText={errors.name?.message} 
+                />
+              )}
+            />
+            <Controller
+              name="lastName"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  label="Apellido"
+                  {...field}
+                  value={field.value ?? ''}
+                  variant="outlined"
+                />
+              )}
+            />
+            <Controller
+              name="razonSocial"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  label="Razón Social"
+                  {...field}
+                  value={field.value ?? ''}
+                  variant="outlined"
+                  helperText="En caso de consumidor final, se usa Nombre + Apellido"
+                />
+              )}
+            />
+            <Controller
+              name="condicionIVA"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label="Condición IVA"
+                  value={field.value || 'Consumidor Final'}
+                  onChange={e => field.onChange(e.target.value)}
+                  options={[
+                    { value: 'Responsable Inscripto', label: 'Responsable Inscripto' },
+                    { value: 'Monotributo', label: 'Monotributo' },
+                    { value: 'IVA Excento', label: 'IVA Excento' },
+                    { value: 'Consumidor Final', label: 'Consumidor Final' },
+                  ]}
+                />
+              )}
+            />
+            <Controller
+              name="dni"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  label="DNI"
+                  {...field}
+                  value={field.value ?? ''}
+                  variant="outlined"
+                  helperText="Para consumidor final"
+                />
+              )}
+            />
+            <Controller
+              name="cuit"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  label="CUIT"
+                  {...field}
+                  value={field.value ?? ''}
+                  variant="outlined"
+                  helperText="Para otros casos"
+                />
+              )}
+            />
+            <Controller
+              name="domicilio"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  label="Domicilio"
+                  {...field}
+                  value={field.value ?? ''}
+                  variant="outlined"
+                />
               )}
             />
             <Controller
@@ -185,21 +295,12 @@ export function ClientDetails({ client, onSave, onCancel }: ClientDetailsProps) 
               control={control}
               rules={{ required: 'El email es obligatorio' }}
               render={({ field }) => (
-                <Input label="Email" {...field} variant="outlined" error={!!errors.email} helperText={errors.email?.message} />
-              )}
-            />
-            <Controller
-              name="type"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  label="Tipo"
-                  value={field.value || 'retailer'}
-                  onChange={e => field.onChange(e.target.value)}
-                  options={[
-                    { value: 'retailer', label: 'Minorista' },
-                    { value: 'wholesaler', label: 'Mayorista' },
-                  ]}
+                <Input 
+                  label="Email" 
+                  {...field} 
+                  variant="outlined" 
+                  error={!!errors.email} 
+                  helperText={errors.email?.message || "Email de contacto para factura"} 
                 />
               )}
             />
@@ -208,7 +309,7 @@ export function ClientDetails({ client, onSave, onCancel }: ClientDetailsProps) 
               control={control}
               render={({ field }) => (
                 <Input
-                  label="Teléfono"
+                  label="Teléfono de contacto"
                   {...field}
                   value={field.value ?? ''}
                   variant="outlined"
@@ -216,26 +317,17 @@ export function ClientDetails({ client, onSave, onCancel }: ClientDetailsProps) 
               )}
             />
             <Controller
-              name="companyName"
+              name="type"
               control={control}
               render={({ field }) => (
-                <Input
-                  label="Nombre de la empresa"
-                  {...field}
-                  value={field.value ?? ''}
-                  variant="outlined"
-                />
-              )}
-            />
-            <Controller
-              name="fiscalType"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  label="Tipo fiscal"
-                  {...field}
-                  value={field.value ?? ''}
-                  variant="outlined"
+                <Select
+                  label="Tipo de Cliente"
+                  value={field.value || 'retailer'}
+                  onChange={e => field.onChange(e.target.value)}
+                  options={[
+                    { value: 'retailer', label: 'Minorista' },
+                    { value: 'wholesaler', label: 'Mayorista' },
+                  ]}
                 />
               )}
             />

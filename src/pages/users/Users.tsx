@@ -21,8 +21,10 @@ const normalizeClient = (raw: any): Client => {
     || raw?.fullName
     || raw?.user?.name
     || "") as string;
+  const lastName = (raw?.lastName || raw?.last_name || "") as string;
   const email = (raw?.email || raw?.user?.email || "") as string;
   const safeName = name.trim();
+  const safeLastName = lastName.trim();
   const safeEmail = email || "";
   const numericId = Number(rawId);
   const id = Number.isNaN(numericId) ? Number(Date.now()) : numericId;
@@ -37,14 +39,23 @@ const normalizeClient = (raw: any): Client => {
     id,
     userId: raw?.user_id ?? raw?.userId ?? undefined,
     name: safeName || safeEmail || "-",
+    lastName: safeLastName || undefined,
+    fullName: raw?.fullName || raw?.full_name || (safeName && safeLastName ? `${safeName} ${safeLastName}` : undefined),
     email: safeEmail,
     type,
-    fiscalType: raw?.fiscalType || raw?.fiscal_type || raw?.fiscal_tipo || raw?.fiscal_condition || null,
+    razonSocial: raw?.razonSocial || raw?.razon_social || raw?.companyName || raw?.company_name || raw?.business_name || null,
+    condicionIVA: raw?.condicionIVA || raw?.condicion_iva || raw?.fiscalCondition || raw?.fiscal_condition || null,
+    dni: raw?.dni || null,
+    cuit: raw?.cuit || null,
+    domicilio: raw?.domicilio || raw?.address || null,
+    phone: raw?.phone || raw?.telefono || raw?.user?.phone || null,
+    // Campos legacy para compatibilidad
+    fiscalType: raw?.fiscalType || raw?.fiscal_type || raw?.fiscal_tipo || raw?.fiscal_condition || raw?.condicionIVA || raw?.condicion_iva || null,
+    fiscalCondition: raw?.fiscalCondition || raw?.fiscal_condition || raw?.condicionIVA || raw?.condicion_iva || null,
+    companyName: raw?.companyName || raw?.company_name || raw?.business_name || raw?.razonSocial || raw?.razon_social || null,
     status,
     createdAt: raw?.createdAt || raw?.created_at,
     updatedAt: raw?.updatedAt || raw?.updated_at,
-    phone: raw?.phone || raw?.telefono || raw?.user?.phone || null,
-    companyName: raw?.companyName || raw?.company_name || raw?.business_name || null,
   };
 
   return client;
@@ -152,8 +163,27 @@ export default function Users() {
           >
             <Table
               columns={[
-                { label: 'Nombre', render: (c: Client) => c.name || '-' },
+                { 
+                  label: 'Nombre', 
+                  render: (c: Client) => {
+                    if (c.fullName) return c.fullName;
+                    if (c.lastName) return `${c.name} ${c.lastName}`;
+                    return c.name || '-';
+                  }
+                },
                 { label: 'Email', render: (c: Client) => c.email || '-' },
+                { 
+                  label: 'Razón Social', 
+                  render: (c: Client) => c.razonSocial || c.companyName || '-' 
+                },
+                { 
+                  label: 'Condición IVA', 
+                  render: (c: Client) => c.condicionIVA || c.fiscalCondition || c.fiscalType || '-' 
+                },
+                { 
+                  label: 'CUIT/DNI', 
+                  render: (c: Client) => c.cuit || c.dni || '-' 
+                },
                 { 
                   label: 'Tipo', 
                   render: (c: Client) => translateToSpanish(c.type, 'clientType')
@@ -162,7 +192,6 @@ export default function Users() {
                   label: 'Estado', 
                   render: (c: Client) => translateToSpanish(c.status, 'status')
                 },
-                { label: 'Creado', render: (c: Client) => formatDate(c.createdAt) },
               ]}
               data={clients}
               getRowKey={(c: Client) => c.id}

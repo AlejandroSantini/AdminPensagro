@@ -8,6 +8,7 @@ import SaleForm from "../pages/sales/components/SaleForm";
 import Users from "../pages/users/Users";
 import Products from "../pages/products/Products";
 import Blog from "../pages/blog/Blog";
+import BlogForm from "../pages/blog/components/BlogForm";
 import BusinessSettings from "../pages/businessSettings/BusinessSettings";
 import Layout from "../components/layout/Layout";
 import ProductForm from "../pages/products/components/ProductsTab/ProductForm";
@@ -111,6 +112,22 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <Blog />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/blog/nuevo" 
+          element={
+            <ProtectedRoute>
+              <BlogForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/blog/:id" 
+          element={
+            <ProtectedRoute>
+              <BlogForm />
             </ProtectedRoute>
           } 
         />

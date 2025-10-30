@@ -148,9 +148,17 @@ export default function ProductTab() {
         columns={[
           { label: 'SKU', render: (p: Product) => p.sku },
           { label: 'Nombre', render: (p: Product) => p.name },
-          { label: 'Precio', render: (p: Product) => p.price_usd },
+          { 
+            label: 'Variantes', 
+            render: (p: Product) => {
+              if (!p.variants || p.variants.length === 0) {
+                return p.price_usd ? `$${p.price_usd}` : '-';
+              }
+              return `${p.variants.length} variante${p.variants.length > 1 ? 's' : ''}`;
+            }
+          },
           { label: 'Stock', render: (p: Product) => p.stock },
-          { label: 'IVA', render: (p: Product) => p.iva },
+          { label: 'IVA', render: (p: Product) => `${p.iva}%` },
           { label: 'Destacado', render: (p: Product) => (p.featured ? 'Sí' : 'No') },
           { label: 'Categoría', render: (p: Product) => p.categories.map((c: CategoryRef) => c.name).join(', ') },
           { label: 'Subcategoría', render: (p: Product) => p.subcategories.map((sc: CategoryRef) => sc.name).join(', ') },

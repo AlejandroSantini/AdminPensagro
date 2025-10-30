@@ -23,7 +23,7 @@ export function Input({ label, icon, type, sx, variant = 'outlined', endAdornmen
       sx={{
         borderRadius: 2,
         mb: 2,
-        mt: 1,
+        mt: 0,
         '& .MuiInputBase-root': {
           borderRadius: 2,
         },

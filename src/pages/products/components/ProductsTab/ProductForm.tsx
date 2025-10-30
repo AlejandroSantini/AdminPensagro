@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, MenuItem, FormControlLabel, Checkbox, CircularProgress, Alert, IconButton } from '@mui/material';
+import { Box, Typography, MenuItem, FormControlLabel, Checkbox, CircularProgress, Alert, IconButton, Paper, Divider } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useFieldArray } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { CustomPaper } from '../../../../components/common/CustomPaper';
 import { Input } from '../../../../components/common/Input';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
+import { ProductsTable } from '../../../../components/common/ProductsTable';
+import { AddProductModal, type ProductItem } from '../../../../components/modals/AddProductModal';
 import api from '../../../../services/api';
 import { getProductByIdRoute, putProductRoute, postProductRoute } from '../../../../services/products';
 import { getCategoriesRoute, getSubcategoriesRoute } from '../../../../services/categories';
-import type { Product, ProductFormData } from '../../../../../types/product';
+import type { Product, ProductFormData, ProductVariant } from '../../../../../types/product';
+import type { ProductRef } from '../../../../../types/combo';
 
 export default function ProductForm() {
   const navigate = useNavigate();
@@ -21,6 +26,8 @@ export default function ProductForm() {
   const [product, setProduct] = useState<Product | null>(null);
   const [categoryOptions, setCategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [subcategoryOptions, setSubcategoryOptions] = useState<{ id: number; name: string }[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRelatedProducts, setSelectedRelatedProducts] = useState<ProductRef[]>([]);
   
   const isEditMode = !!id;
   const pageTitle = isEditMode ? 'Editar Producto' : 'Nuevo Producto';
@@ -31,14 +38,56 @@ export default function ProductForm() {
       sku: '',
       name: '',
       description: '',
-      price_usd: 0,
       stock: 0,
       iva: 0,
       featured: false,
       categoryId: 0,
       subcategoryId: 0,
+      variants: [],
+      relatedProducts: [],
     }
   });
+
+  const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
+    control,
+    name: 'variants',
+  });
+
+  const handleOpenModal = () => {
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+  };
+
+  const handleProductSelect = (product: ProductItem) => {
+    // Verificar que no sea el mismo producto
+    if (isEditMode && product.id === Number(id)) {
+      alert('No puedes agregar el mismo producto como relacionado');
+      return;
+    }
+    
+    // Verificar que no esté ya agregado
+    if (selectedRelatedProducts.some(p => p.id === product.id)) {
+      alert('Este producto ya está en la lista de relacionados');
+      return;
+    }
+    
+    // Convertir ProductItem a ProductRef
+    const productToAdd: ProductRef = {
+      id: product.id,
+      name: product.name,
+      price: parseFloat(product.price?.toString() || '0')
+    };
+    
+    setSelectedRelatedProducts(prev => [...prev, productToAdd]);
+    setModalOpen(false);
+  };
+
+  const handleRemoveProduct = (productId: number) => {
+    setSelectedRelatedProducts(prev => prev.filter(p => p.id !== productId));
+  };
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -52,19 +101,43 @@ export default function ProductForm() {
         const productData = res.data.data;
         setProduct(productData);
         
+        // Mapear las variantes del API al formato del formulario
+        const mappedVariants = (productData.variants || []).map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          quantity: Number(v.quantity),
+          price_wholesale_usd: Number(v.price_wholesale_usd),
+          price_retail_usd: Number(v.price_retail_usd),
+          peso_kg: v.peso_kg ? Number(v.peso_kg) : undefined,
+          volumen: v.volumen ? Number(v.volumen) : undefined,
+        }));
+
+        // Mapear los productos relacionados (viene como related_products del API)
+        const relatedProductIds = (productData.related_products || []).map((p: any) => p.id);
+        
+        // Mapear los productos relacionados para el estado local usando ProductRef
+        const relatedProductsRefs: ProductRef[] = (productData.related_products || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: 0,
+        }));
+        setSelectedRelatedProducts(relatedProductsRefs);
+        
         reset({
           id: productData.id,
           sku: productData.sku,
           name: productData.name,
-          description: productData.description,
-          price_usd: Number(productData.price_usd),
+          description: productData.description || '',
           stock: Number(productData.stock),
           iva: Number(productData.iva),
-          featured: productData.featured,
+          featured: productData.featured === true || productData.featured === 'true',
           categoryId: productData.categories[0]?.id || 0,
           subcategoryId: productData.subcategories[0]?.id || 0,
+          variants: mappedVariants,
+          relatedProducts: relatedProductIds,
         });
       } catch (e) {
+        console.error('Error al cargar producto:', e);
         setError('No se pudo cargar el producto');
       } finally {
         setFetchLoading(false);
@@ -99,27 +172,42 @@ export default function ProductForm() {
 
   const onSubmit = async (data: ProductFormData) => {
     setLoading(true);
+    setError(null);
+    
     const payload = {
-      ...data,
-      price_usd: parseFloat(String(data.price_usd)) || 0,
+      sku: data.sku,
+      name: data.name,
+      description: data.description,
       stock: parseInt(String(data.stock)) || 0,
       iva: parseInt(String(data.iva)) || 0,
+      featured: data.featured,
       categoryId: parseInt(String(data.categoryId)) || 0,
       subcategoryId: parseInt(String(data.subcategoryId)) || 0,
+      relatedProducts: selectedRelatedProducts.map(p => parseInt(String(p.id))), // IDs como int
+      variants: data.variants.map(v => ({
+        name: v.name,
+        quantity: parseInt(String(v.quantity)) || 0,
+        price_wholesale_usd: parseFloat(String(v.price_wholesale_usd)) || 0,
+        price_retail_usd: parseFloat(String(v.price_retail_usd)) || 0,
+        peso_kg: v.peso_kg ? parseFloat(String(v.peso_kg)) : undefined,
+        volumen: v.volumen ? parseFloat(String(v.volumen)) : undefined,
+      })),
     };
+
+    console.log('Payload a enviar:', payload);
 
     try {
       if (isEditMode) {
-        await api.put(putProductRoute(id!), { ...payload, id: Number(id) });
+        await api.put(putProductRoute(id!), payload);
       } else {
         await api.post(postProductRoute(), payload);
       }
       
       setLoading(false);
       navigate('/productos');
-    } catch (e) {
+    } catch (e: any) {
       setLoading(false);
-      setError(isEditMode ? 'Error al actualizar el producto' : 'Error al crear el producto');
+      setError(e.response?.data?.message || (isEditMode ? 'Error al actualizar el producto' : 'Error al crear el producto'));
     }
   };
 
@@ -184,6 +272,48 @@ export default function ProductForm() {
           {isEditMode ? `Editar Producto: ${product?.name}` : 'Nuevo Producto'}
         </Typography>
       </Box>
+
+      {isEditMode && product && (
+        <Paper elevation={0} sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5', border: '1px solid #e0e0e0', borderRadius: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary">ID</Typography>
+              <Typography variant="body2" fontWeight={500}>#{product.id}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Estado</Typography>
+              <Typography variant="body2" fontWeight={500} sx={{ textTransform: 'capitalize' }}>
+                {product.status === 'active' ? '✅ Activo' : '⚠️ ' + product.status}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Creado</Typography>
+              <Typography variant="body2" fontWeight={500}>
+                {new Date(product.created_at).toLocaleDateString('es-AR', { 
+                  day: '2-digit', 
+                  month: '2-digit', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Última modificación</Typography>
+              <Typography variant="body2" fontWeight={500}>
+                {new Date(product.updated_at).toLocaleDateString('es-AR', { 
+                  day: '2-digit', 
+                  month: '2-digit', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
       <CustomPaper>
         <Box component="form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
           <Controller
@@ -210,19 +340,11 @@ export default function ProductForm() {
             )}
           />
           <Controller
-            name="price_usd"
-            control={control}
-            rules={{ required: 'El precio es obligatorio', min: { value: 0, message: 'Debe ser mayor o igual a 0' } }}
-            render={({ field }) => (
-              <Input label="Precio USD" type="number" {...field} sx={{ mb: 3 }} variant="outlined" required error={!!errors.price_usd} helperText={errors.price_usd?.message} />
-            )}
-          />
-          <Controller
             name="stock"
             control={control}
-            rules={{ required: 'El stock es obligatorio', min: { value: 0, message: 'Debe ser mayor o igual a 0' } }}
+            rules={{ required: 'El stock total es obligatorio', min: { value: 0, message: 'Debe ser mayor o igual a 0' } }}
             render={({ field }) => (
-              <Input label="Stock" type="number" {...field} sx={{ mb: 3 }} variant="outlined" required error={!!errors.stock} helperText={errors.stock?.message} />
+              <Input label="Stock Total" type="number" {...field} sx={{ mb: 3 }} variant="outlined" required error={!!errors.stock} helperText={errors.stock?.message} />
             )}
           />
           <Controller
@@ -258,7 +380,11 @@ export default function ProductForm() {
                 variant="outlined"
                 required
                 error={!!errors.categoryId}
-                helperText={errors.categoryId?.message}
+                helperText={
+                  isEditMode && product?.categories[0] 
+                    ? `Categoría actual: ${product.categories[0].name}` 
+                    : errors.categoryId?.message
+                }
               >
                 <MenuItem value="">Seleccionar categoría</MenuItem>
                 {categoryOptions.map(c => (
@@ -278,6 +404,11 @@ export default function ProductForm() {
                 value={field.value || ''}
                 sx={{ mb: 3 }}
                 variant="outlined"
+                helperText={
+                  isEditMode && product?.subcategories[0] 
+                    ? `Subcategoría actual: ${product.subcategories[0].name}` 
+                    : undefined
+                }
               >
                 <MenuItem value="">Seleccionar subcategoría</MenuItem>
                 {subcategoryOptions.map(sc => (
@@ -285,6 +416,161 @@ export default function ProductForm() {
                 ))}
               </Input>
             )}
+          />
+
+          <Divider sx={{ my: 3 }} />
+
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Variantes del Producto
+          </Typography>
+          
+          {variantFields.map((variant, index) => {
+            const variantData = variantFields[index] as any;
+            return (
+            <Paper key={variant.id} elevation={0} sx={{ p: 2, mb: 2, border: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={500}>
+                    Variante {index + 1}
+                    {variantData.id && (
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        (ID: {variantData.id})
+                      </Typography>
+                    )}
+                  </Typography>
+                </Box>
+                <IconButton 
+                  color="error" 
+                  size="small" 
+                  onClick={() => removeVariant(index)}
+                  aria-label="eliminar variante"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                <Controller
+                  name={`variants.${index}.name`}
+                  control={control}
+                  rules={{ required: 'El nombre de la variante es obligatorio' }}
+                  render={({ field }) => (
+                    <Input 
+                      label="Nombre de Variante" 
+                      {...field} 
+                      variant="outlined" 
+                      required
+                      error={!!errors.variants?.[index]?.name}
+                      helperText={errors.variants?.[index]?.name?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  name={`variants.${index}.quantity`}
+                  control={control}
+                  rules={{ required: 'La cantidad es obligatoria', min: { value: 0, message: 'Debe ser mayor o igual a 0' } }}
+                  render={({ field }) => (
+                    <Input 
+                      label="Cantidad" 
+                      type="number" 
+                      {...field} 
+                      variant="outlined" 
+                      required
+                      error={!!errors.variants?.[index]?.quantity}
+                      helperText={errors.variants?.[index]?.quantity?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  name={`variants.${index}.price_wholesale_usd`}
+                  control={control}
+                  rules={{ required: 'El precio mayorista es obligatorio', min: { value: 0, message: 'Debe ser mayor o igual a 0' } }}
+                  render={({ field }) => (
+                    <Input 
+                      label="Precio Mayorista USD" 
+                      type="number" 
+                      {...field} 
+                      variant="outlined" 
+                      required
+                      error={!!errors.variants?.[index]?.price_wholesale_usd}
+                      helperText={errors.variants?.[index]?.price_wholesale_usd?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  name={`variants.${index}.price_retail_usd`}
+                  control={control}
+                  rules={{ required: 'El precio minorista es obligatorio', min: { value: 0, message: 'Debe ser mayor o igual a 0' } }}
+                  render={({ field }) => (
+                    <Input 
+                      label="Precio Minorista USD" 
+                      type="number" 
+                      {...field} 
+                      variant="outlined" 
+                      required
+                      error={!!errors.variants?.[index]?.price_retail_usd}
+                      helperText={errors.variants?.[index]?.price_retail_usd?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  name={`variants.${index}.peso_kg`}
+                  control={control}
+                  render={({ field }) => (
+                    <Input 
+                      label="Peso (kg)" 
+                      type="number" 
+                      {...field} 
+                      variant="outlined"
+                      helperText="Opcional, para calcular envío"
+                    />
+                  )}
+                />
+                <Controller
+                  name={`variants.${index}.volumen`}
+                  control={control}
+                  render={({ field }) => (
+                    <Input 
+                      label="Volumen" 
+                      type="number" 
+                      {...field} 
+                      variant="outlined"
+                      helperText="Opcional, para calcular envío"
+                    />
+                  )}
+                />
+              </Box>
+            </Paper>
+            );
+          })}
+
+          <Box sx={{ mb: 3 }}>
+            <OutlinedButton
+              startIcon={<AddIcon />}
+              onClick={() => appendVariant({ 
+                name: '', 
+                quantity: 0, 
+                price_wholesale_usd: 0, 
+                price_retail_usd: 0,
+                peso_kg: undefined,
+                volumen: undefined,
+              })}
+            >
+              Agregar Variante
+            </OutlinedButton>
+          </Box>
+
+          {/* Sección de Productos Relacionados */}
+          <Divider sx={{ my: 3 }} />
+          
+          <ProductsTable
+            products={selectedRelatedProducts}
+            onAddProduct={handleOpenModal}
+            onRemoveProduct={handleRemoveProduct}
+            allowQuantityEdit={false}
+            showTotal={false}
+            emptyMessage="No hay productos relacionados"
+            title="Productos Relacionados"
           />
           
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>
@@ -297,6 +583,12 @@ export default function ProductForm() {
           </Box>
         </Box>
       </CustomPaper>
+
+      <AddProductModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        onProductSelect={handleProductSelect}
+      />
     </Box>
   );
 }
