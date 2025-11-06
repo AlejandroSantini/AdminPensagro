@@ -28,6 +28,8 @@ export default function ProductForm() {
   const [subcategoryOptions, setSubcategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRelatedProducts, setSelectedRelatedProducts] = useState<ProductRef[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]); // Estado para las imágenes existentes
   
   const isEditMode = !!id;
   const pageTitle = isEditMode ? 'Editar Producto' : 'Nuevo Producto';
@@ -89,6 +91,21 @@ export default function ProductForm() {
     setSelectedRelatedProducts(prev => prev.filter(p => p.id !== productId));
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const files = (event.target as HTMLInputElement).files;
+    if (files) {
+      setSelectedFiles((prevFiles) => [...prevFiles, ...Array.from(files)]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prevImages) => prevImages.filter((_, i) => i !== index));
+  };
+
   useEffect(() => {
     if (!isEditMode) return;
     
@@ -100,7 +117,10 @@ export default function ProductForm() {
         const res = await api.get(getProductByIdRoute(id));
         const productData = res.data.data;
         setProduct(productData);
-        
+
+        // Mapear las imágenes existentes
+        setExistingImages(productData.image_urls || []);
+
         // Mapear las variantes del API al formato del formulario
         const mappedVariants = (productData.variants || []).map((v: any) => ({
           id: v.id,
@@ -173,36 +193,49 @@ export default function ProductForm() {
   const onSubmit = async (data: ProductFormData) => {
     setLoading(true);
     setError(null);
-    
-    const payload = {
-      sku: data.sku,
-      name: data.name,
-      description: data.description,
-      stock: parseInt(String(data.stock)) || 0,
-      iva: parseInt(String(data.iva)) || 0,
-      featured: data.featured,
-      categoryId: parseInt(String(data.categoryId)) || 0,
-      subcategoryId: parseInt(String(data.subcategoryId)) || 0,
-      relatedProducts: selectedRelatedProducts.map(p => parseInt(String(p.id))), // IDs como int
-      variants: data.variants.map(v => ({
-        name: v.name,
-        quantity: parseInt(String(v.quantity)) || 0,
-        price_wholesale_usd: parseFloat(String(v.price_wholesale_usd)) || 0,
-        price_retail_usd: parseFloat(String(v.price_retail_usd)) || 0,
-        peso_kg: v.peso_kg ? parseFloat(String(v.peso_kg)) : undefined,
-        volumen: v.volumen ? parseFloat(String(v.volumen)) : undefined,
-      })),
-    };
 
-    console.log('Payload a enviar:', payload);
+    const formData = new FormData();
+    formData.append('sku', data.sku);
+    formData.append('name', data.name);
+    formData.append('description', data.description);
+    formData.append('stock', data.stock.toString());
+    formData.append('iva', data.iva.toString());
+    formData.append('featured', data.featured.toString());
+    formData.append('categoryId', data.categoryId.toString());
+    formData.append('subcategoryId', data.subcategoryId.toString());
+
+    selectedRelatedProducts.forEach((product, index) => {
+      formData.append(`relatedProducts[${index}]`, product.id.toString());
+    });
+
+    data.variants.forEach((variant, index) => {
+      formData.append(`variants[${index}][name]`, variant.name);
+      formData.append(`variants[${index}][quantity]`, variant.quantity.toString());
+      formData.append(`variants[${index}][price_wholesale_usd]`, variant.price_wholesale_usd.toString());
+      formData.append(`variants[${index}][price_retail_usd]`, variant.price_retail_usd.toString());
+      if (variant.peso_kg) formData.append(`variants[${index}][peso_kg]`, variant.peso_kg.toString());
+      if (variant.volumen) formData.append(`variants[${index}][volumen]`, variant.volumen.toString());
+    });
+
+    existingImages.forEach((url) => {
+      formData.append('images', url);
+    });
+
+    selectedFiles.forEach((file) => {
+      formData.append('images', file);
+    });
 
     try {
       if (isEditMode) {
-        await api.put(putProductRoute(id!), payload);
+        await api.put(putProductRoute(id!), formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       } else {
-        await api.post(postProductRoute(), payload);
+        await api.post(postProductRoute(), formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       }
-      
+
       setLoading(false);
       navigate('/productos');
     } catch (e: any) {
@@ -573,6 +606,83 @@ export default function ProductForm() {
             title="Productos Relacionados"
           />
           
+          <Divider sx={{ my: 3 }} />
+
+          {/* Sección de Carga de Imágenes */}
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Cargar Imágenes
+          </Typography>
+          <Box sx={{ mb: 3 }}>
+            <Input
+              type="file"
+              inputProps={{ multiple: true }}
+              onChange={handleFileChange}
+              variant="outlined"
+              label=""
+            />
+            {(existingImages.length > 0 || selectedFiles.length > 0) && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle1">Vista previa:</Typography>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+                  {existingImages.map((url, index) => (
+                    <Box
+                      key={`existing-${index}`}
+                      sx={{
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 2,
+                        p: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <img
+                        src={url}
+                        alt={`Imagen existente ${index + 1}`}
+                        style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4 }}
+                      />
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleRemoveExistingImage(index)}
+                        aria-label="eliminar imagen existente"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  {selectedFiles.map((file, index) => (
+                    <Box
+                      key={`new-${index}`}
+                      sx={{
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 2,
+                        p: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4 }}
+                      />
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleRemoveFile(index)}
+                        aria-label="eliminar imagen nueva"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>
             <OutlinedButton onClick={handleCancel} disabled={loading}>
               Cancelar
