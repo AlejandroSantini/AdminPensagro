@@ -4,7 +4,8 @@ import {
   Typography, 
   IconButton, 
   Chip,
-  Paper
+  Paper,
+  Tooltip,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
@@ -125,19 +126,14 @@ export default function Blog() {
             {
               label: 'Acciones',
               render: (post: BlogPost) => (
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(post);
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              ),
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Eliminar">
+                      <IconButton size="small" onClick={(e: any) => { e.stopPropagation(); handleDelete(post); }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                ),
             },
           ]}
           data={posts}

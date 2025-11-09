@@ -16,9 +16,10 @@ export interface TableProps<T> {
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
   sx?: object;
+  getRowSx?: (row: T) => object;
 }
 
-export function Table<T>({ columns, data, getRowKey, onRowClick, emptyMessage = 'Sin datos', sx }: TableProps<T>) {
+export function Table<T>({ columns, data, getRowKey, onRowClick, emptyMessage = 'Sin datos', sx, getRowSx }: TableProps<T>) {
   return (
     <TableContainer
       component={CustomPaper}
@@ -53,7 +54,11 @@ export function Table<T>({ columns, data, getRowKey, onRowClick, emptyMessage = 
               <TableRow
                 key={getRowKey(row)}
                 hover
-                sx={{ transition: 'background 0.2s', '&:hover': { backgroundColor: '#f0f0f0', cursor: onRowClick ? 'pointer' : 'default' } }}
+                sx={{
+                  transition: 'background 0.2s',
+                  ...(getRowSx ? getRowSx(row) : {}),
+                  '&:hover': { backgroundColor: '#f0f0f0', cursor: onRowClick ? 'pointer' : 'default' }
+                }}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
               >
                 {columns.map((col, idx) => (

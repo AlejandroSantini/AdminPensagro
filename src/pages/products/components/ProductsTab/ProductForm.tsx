@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm, useFieldArray } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteButton from '../../../../components/common/DeleteButton';
+import ImageUploader from '../../../../components/common/ImageUploader';
 import { CustomPaper } from '../../../../components/common/CustomPaper';
 import { Input } from '../../../../components/common/Input';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
@@ -28,7 +29,7 @@ export default function ProductForm() {
   const [subcategoryOptions, setSubcategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRelatedProducts, setSelectedRelatedProducts] = useState<ProductRef[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedImagesData, setSelectedImagesData] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]); // Estado para las imágenes existentes
   
   const isEditMode = !!id;
@@ -94,12 +95,19 @@ export default function ProductForm() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const files = (event.target as HTMLInputElement).files;
     if (files) {
-      setSelectedFiles((prevFiles) => [...prevFiles, ...Array.from(files)]);
+      Array.from(files).forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          setSelectedImagesData(prev => [...prev, result]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
   const handleRemoveFile = (index: number) => {
-    setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+    setSelectedImagesData((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleRemoveExistingImage = (index: number) => {
@@ -221,8 +229,9 @@ export default function ProductForm() {
       formData.append('images', url);
     });
 
-    selectedFiles.forEach((file) => {
-      formData.append('images', file);
+    // append existing image URLs
+    selectedImagesData.forEach((dataUrl) => {
+      formData.append('images', dataUrl);
     });
 
     try {
@@ -472,14 +481,7 @@ export default function ProductForm() {
                     )}
                   </Typography>
                 </Box>
-                <IconButton 
-                  color="error" 
-                  size="small" 
-                  onClick={() => removeVariant(index)}
-                  aria-label="eliminar variante"
-                >
-                  <DeleteIcon />
-                </IconButton>
+                <DeleteButton onClick={() => removeVariant(index)} />
               </Box>
               
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
@@ -593,7 +595,6 @@ export default function ProductForm() {
             </OutlinedButton>
           </Box>
 
-          {/* Sección de Productos Relacionados */}
           <Divider sx={{ my: 3 }} />
           
           <ProductsTable
@@ -608,79 +609,22 @@ export default function ProductForm() {
           
           <Divider sx={{ my: 3 }} />
 
-          {/* Sección de Carga de Imágenes */}
           <Typography variant="h6" sx={{ mb: 2 }}>
             Cargar Imágenes
           </Typography>
           <Box sx={{ mb: 3 }}>
-            <Input
-              type="file"
-              inputProps={{ multiple: true }}
-              onChange={handleFileChange}
-              variant="outlined"
-              label=""
+            <Typography variant="h6" sx={{ mb: 2 }}>Cargar Imágenes</Typography>
+            <ImageUploader
+              value={[...existingImages, ...selectedImagesData]}
+              multiple
+              onChange={(images) => {
+                const urls = images.filter(i => !i.startsWith('data:'));
+                const data = images.filter(i => i.startsWith('data:'));
+                setExistingImages(urls);
+                setSelectedImagesData(data);
+              }}
+              recommendText="Se recomienda subir imágenes cuadradas para mejor visualización"
             />
-            {(existingImages.length > 0 || selectedFiles.length > 0) && (
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1">Vista previa:</Typography>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
-                  {existingImages.map((url, index) => (
-                    <Box
-                      key={`existing-${index}`}
-                      sx={{
-                        border: '1px solid #e0e0e0',
-                        borderRadius: 2,
-                        p: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      <img
-                        src={url}
-                        alt={`Imagen existente ${index + 1}`}
-                        style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4 }}
-                      />
-                      <IconButton
-                        color="error"
-                        size="small"
-                        onClick={() => handleRemoveExistingImage(index)}
-                        aria-label="eliminar imagen existente"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  ))}
-                  {selectedFiles.map((file, index) => (
-                    <Box
-                      key={`new-${index}`}
-                      sx={{
-                        border: '1px solid #e0e0e0',
-                        borderRadius: 2,
-                        p: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                      }}
-                    >
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4 }}
-                      />
-                      <IconButton
-                        color="error"
-                        size="small"
-                        onClick={() => handleRemoveFile(index)}
-                        aria-label="eliminar imagen nueva"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            )}
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>

@@ -1,5 +1,5 @@
 import { type JSX } from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Tooltip, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { Table } from './Table';
@@ -24,6 +24,7 @@ interface ProductsTableProps {
   emptyMessage?: string;
   title?: string;
   errors?: string;
+  getRowSx?: (product: ProductWithQuantity) => object;
 }
 
 export const ProductsTable = ({
@@ -35,7 +36,8 @@ export const ProductsTable = ({
   showTotal = false,
   emptyMessage = "No hay productos seleccionados",
   title = "Productos seleccionados",
-  errors
+  errors,
+  getRowSx
 }: ProductsTableProps) => {
   
   const calculateTotal = () => {
@@ -100,11 +102,7 @@ export const ProductsTable = ({
         label: 'Acciones',
         render: (p: ProductWithQuantity) => (
           <Tooltip title="Eliminar">
-            <IconButton 
-              color="error" 
-              size="small" 
-              onClick={() => onRemoveProduct(p.id)}
-            >
+            <IconButton size="small" onClick={(e: any) => { e.stopPropagation(); onRemoveProduct(p.id); }}>
               <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -132,6 +130,7 @@ export const ProductsTable = ({
         getRowKey={(p: ProductWithQuantity) => p.id}
         emptyMessage={emptyMessage}
         sx={{ boxShadow: 'none' }}
+        getRowSx={getRowSx}
       />
       
       {showTotal && products.length > 0 && (

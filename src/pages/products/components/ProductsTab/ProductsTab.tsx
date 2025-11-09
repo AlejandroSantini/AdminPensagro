@@ -157,7 +157,14 @@ export default function ProductTab() {
               return `${p.variants.length} variante${p.variants.length > 1 ? 's' : ''}`;
             }
           },
-          { label: 'Stock', render: (p: Product) => p.stock },
+          { label: 'Stock', render: (p: Product) => (
+              <Typography sx={{
+                color: (p.stock ?? 0) < 50 ? 'error.main' : 'text.primary',
+                fontWeight: (p.stock ?? 0) < 50 ? 700 : 400,
+              }}>
+                {p.stock}
+              </Typography>
+            ) },
           { label: 'IVA', render: (p: Product) => `${p.iva}%` },
           { label: 'Destacado', render: (p: Product) => (p.featured ? 'Sí' : 'No') },
           { label: 'Categoría', render: (p: Product) => p.categories.map((c: CategoryRef) => c.name).join(', ') },
@@ -165,20 +172,11 @@ export default function ProductTab() {
           {
             label: 'Acciones',
             render: (p: Product) => (
-              <>
-                <Tooltip title="Eliminar">
-                  <IconButton 
-                    color="error" 
-                    size="small" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(p);
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </>
+              <Tooltip title="Eliminar">
+                <IconButton size="small" onClick={(e: any) => { e.stopPropagation(); handleDelete(p); }}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             ),
             align: 'center',
           },

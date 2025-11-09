@@ -36,7 +36,7 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   
-  const { handleSubmit, control, reset, formState: { errors } } = useForm<CategoryFormData>({
+  const { handleSubmit, control, watch, reset, formState: { errors } } = useForm<CategoryFormData>({
     defaultValues: {
       name: '',
       description: '',
@@ -45,6 +45,8 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
       status: 'active'
     },
   });
+
+  const parentIdValue = watch('parentId');
 
   useEffect(() => {
     if (open) {
@@ -104,7 +106,12 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
-        <DialogTitle>{initialData ? 'Editar categoría' : 'Nueva categoría'}</DialogTitle>
+        <DialogTitle>
+          {(parentIdValue || initialData?.parentId)
+            ? (initialData ? 'Editar subcategoría' : 'Nueva subcategoría')
+            : (initialData ? 'Editar categoría' : 'Nueva categoría')
+          }
+        </DialogTitle>
         
         <DialogContent>
           <Controller

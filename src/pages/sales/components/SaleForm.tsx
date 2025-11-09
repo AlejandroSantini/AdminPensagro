@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm, FormProvider } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { Input } from '../../../components/common/Input';
 import { ContainedButton } from '../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../components/common/OutlinedButton';

@@ -1,41 +1,53 @@
 
-import { useState, useEffect } from 'react';
-import { Box, Typography, Divider, IconButton, Tooltip, CircularProgress, Alert, Grid } from '@mui/material';
-import { Input } from '../../components/common/Input';
-import { CustomPaper } from '../../components/common/CustomPaper';
+import { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, Divider, CircularProgress, Alert } from '@mui/material';
+import { SimpleTabs } from '../../components/common/SimpleTabs';
+import GeneralTab from './components/GeneralTab';
+import PopupTab from './components/PopupTab';
 import { ContainedButton } from '../../components/common/ContainedButton';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { useForm, useFieldArray } from 'react-hook-form';
 import api from '../../services/api';
 import { getConfigRoute, putConfigRoute } from '../../services/config';
 
 interface BusinessSettingsForm {
   usd_ars_rate: string;
-  alias: string;
-  cbu: string;
+  cbus: { alias: string; cbu: string }[];
   pickup_address: string;
   free_shipping_threshold_retailer: string;
   free_shipping_threshold_wholesaler: string;
   purchase_notify_emails: { email: string }[];
+  popup: {
+    content_type: string;
+    link: string;
+    link_open_type: string;
+    status: string;
+    image?: string;
+  };
 }
 
 const DEFAULT_VALUES: BusinessSettingsForm = {
   usd_ars_rate: '',
-  alias: '',
-  cbu: '',
+  cbus: [{ alias: '', cbu: '' }],
   pickup_address: '',
   free_shipping_threshold_retailer: '',
   free_shipping_threshold_wholesaler: '',
   purchase_notify_emails: [{ email: '' }],
+  popup: {
+    content_type: 'Imagen',
+    link: '',
+    link_open_type: 'same',
+    status: 'inactive',
+    image: '',
+  },
 };
 export default function BusinessSettings() {
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [tabIndex, setTabIndex] = useState(0);
   
-  const { handleSubmit, control, reset, formState: { errors } } = useForm<BusinessSettingsForm>({
+  const { handleSubmit, control, reset, setValue, watch, formState: { errors } } = useForm<BusinessSettingsForm>({
     defaultValues: DEFAULT_VALUES,
   });
   
@@ -44,11 +56,12 @@ export default function BusinessSettings() {
     name: 'purchase_notify_emails',
   });
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
+  const { fields: cbusFields, append: appendCbu, remove: removeCbu } = useFieldArray({
+    control,
+    name: 'cbus',
+  });
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -59,15 +72,21 @@ export default function BusinessSettings() {
         const emailsArray = Array.isArray(config.purchase_notify_emails) 
           ? config.purchase_notify_emails.map((email: string) => ({ email }))
           : [{ email: '' }];
-          
+        // support both legacy single cbu/alias and new cbus array
+        const cbusArray = Array.isArray(config.cbus)
+          ? config.cbus.map((it: any) => ({ alias: it.alias || '', cbu: it.cbu || '' }))
+          : (config.cbu || config.alias)
+            ? [{ alias: config.alias || '', cbu: config.cbu || '' }]
+            : [{ alias: '', cbu: '' }];
+
         reset({
           usd_ars_rate: config.usd_ars_rate || '',
-          alias: config.alias || '',
-          cbu: config.cbu || '',
+          cbus: cbusArray,
           pickup_address: config.pickup_address || '',
           free_shipping_threshold_retailer: config.free_shipping_threshold_retailer || '',
           free_shipping_threshold_wholesaler: config.free_shipping_threshold_wholesaler || '',
           purchase_notify_emails: emailsArray,
+          popup: config.popup || DEFAULT_VALUES.popup,
         });
       } else {
         setError('No se pudo cargar la configuración');
@@ -78,7 +97,11 @@ export default function BusinessSettings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reset]);
+
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
 
   const onSubmit = async (data: BusinessSettingsForm) => {
     setSaveLoading(true);
@@ -88,12 +111,14 @@ export default function BusinessSettings() {
     try {
       const payload = {
         usd_ars_rate: data.usd_ars_rate,
-        alias: data.alias,
-        cbu: data.cbu,
+        cbus: data.cbus,
+        alias: Array.isArray(data.cbus) && data.cbus.length > 0 ? data.cbus[0].alias : '',
+        cbu: Array.isArray(data.cbus) && data.cbus.length > 0 ? data.cbus[0].cbu : '',
         pickup_address: data.pickup_address,
         free_shipping_threshold_retailer: data.free_shipping_threshold_retailer,
         free_shipping_threshold_wholesaler: data.free_shipping_threshold_wholesaler,
         purchase_notify_emails: data.purchase_notify_emails.map(item => item.email),
+        popup: data.popup,
       };
       
       const response = await api.put(putConfigRoute(), payload);
@@ -110,139 +135,41 @@ export default function BusinessSettings() {
     }
   };
 
+  const tabs = [
+    { label: 'General', content: <GeneralTab control={control} errors={errors} cbusFields={cbusFields} appendCbu={appendCbu} removeCbu={removeCbu} emailFields={fields} appendEmail={append} removeEmail={remove} /> },
+    { label: 'Pop-up', content: <PopupTab control={control} watch={watch} setValue={setValue} /> },
+  ];
+
   return (
     <Box maxWidth={800} mx="auto" mt={2}>
       <Typography variant="h5" fontWeight={600} mb={2}>Configuración del Negocio</Typography>
-      <CustomPaper>
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        )}
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        )}
-        
-        {saveSuccess && (
-          <Alert severity="success" sx={{ mb: 2 }}>Configuración guardada exitosamente</Alert>
-        )}
-        
-        {!loading && (
-          <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {/* Primera sección - Datos básicos - 2 columnas */}
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ flex: '1 1 300px' }}>
-                  <Controller
-                    name="usd_ars_rate"
-                    control={control}
-                    rules={{ required: 'Obligatorio' }}
-                    render={({ field }) => (
-                      <Input 
-                        label="Tipo de cambio USD → ARS" 
-                        type="number" 
-                        variant="outlined" 
-                        {...field} 
-                        error={!!errors.usd_ars_rate} 
-                        helperText={errors.usd_ars_rate?.message} 
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="alias"
-                    control={control}
-                    render={({ field }) => (
-                      <Input label="Alias (CBU)" variant="outlined" {...field} />
-                    )}
-                  />
-                </Box>
-                
-                <Box sx={{ flex: '1 1 300px' }}>
-                  <Controller
-                    name="cbu"
-                    control={control}
-                    render={({ field }) => (
-                      <Input label="CBU" variant="outlined" {...field} />
-                    )}
-                  />
-                  <Controller
-                    name="pickup_address"
-                    control={control}
-                    render={({ field }) => (
-                      <Input label="Dirección de retiro del local" variant="outlined" {...field} />
-                    )}
-                  />
-                </Box>
-              </Box>
-              
-              {/* Segunda sección - Lógica de envío - ancho completo */}
-              <Box>
-                <Divider sx={{ my: 2 }} />
-                <Typography fontWeight={500} mb={2}>Lógica de envío gratis</Typography>
-                
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                  <Box sx={{ flex: '1 1 300px' }}>
-                    <Controller
-                      name="free_shipping_threshold_retailer"
-                      control={control}
-                      render={({ field }) => (
-                        <Input label="Envío gratis minorista (compra mínima $)" type="number" variant="outlined" fullWidth {...field} />
-                      )}
-                    />
-                  </Box>
-                  <Box sx={{ flex: '1 1 300px' }}>
-                    <Controller
-                      name="free_shipping_threshold_wholesaler"
-                      control={control}
-                      render={({ field }) => (
-                        <Input label="Envío gratis mayorista (compra mínima $)" type="number" variant="outlined" fullWidth {...field} />
-                      )}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-              
-              <Box>
-                <Divider sx={{ my: 2 }} />
-                <Typography fontWeight={500} mb={2}>Emails de notificación de compra</Typography>
-                {fields.map((item, idx) => (
-                  <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Controller
-                      name={`purchase_notify_emails.${idx}.email` as const}
-                      control={control}
-                      rules={{ required: 'Email requerido' }}
-                      render={({ field }) => (
-                        <Input 
-                          label={`Email ${idx + 1}`} 
-                          variant="outlined" 
-                          {...field} 
-                          error={!!errors.purchase_notify_emails?.[idx]?.email} 
-                          helperText={errors.purchase_notify_emails?.[idx]?.email?.message} 
-                          sx={{ flex: 1, mb: 0 }} 
-                        />
-                      )}
-                    />
-                    <Tooltip title="Eliminar">
-                      <IconButton onClick={() => remove(idx)} disabled={fields.length === 1} color="error">
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                ))}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                <ContainedButton type="button" icon={<AddIcon />} onClick={() => append({ email: '' })}>
-                  Agregar email
-                </ContainedButton>
-                <ContainedButton type="submit" disabled={saveLoading}>
-                  {saveLoading ? <CircularProgress size={20} color="inherit" /> : 'Guardar configuración'}
-                </ContainedButton>
-                </Box>
-              </Box>
+
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+      )}
+
+      {saveSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }}>Configuración guardada exitosamente</Alert>
+      )}
+
+      {!loading && (
+        <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+          <SimpleTabs tabs={tabs} />
+          <Box sx={{ mt: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+              <ContainedButton type="submit" disabled={saveLoading}>
+                {saveLoading ? <CircularProgress size={20} color="inherit" /> : 'Guardar configuración'}
+              </ContainedButton>
             </Box>
-          </form>
-        )}
-      </CustomPaper>
+          </Box>
+        </form>
+      )}
     </Box>
   );
 }

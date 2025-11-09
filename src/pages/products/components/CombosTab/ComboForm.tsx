@@ -12,7 +12,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteButton from '../../../../components/common/DeleteButton';
 import AddIcon from '@mui/icons-material/Add';
 import { CustomPaper } from '../../../../components/common/CustomPaper';
 import { Input } from '../../../../components/common/Input';

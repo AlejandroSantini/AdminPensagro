@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddIcon from '@mui/icons-material/Add';
@@ -13,6 +14,7 @@ import { SalesFilters } from './components/SalesFilters';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getSalesRoute, exportSalesRoute } from '../../services/sales';
+import { postManualPaymentRoute } from '../../services/payments';
 import { getClientsRoute } from '../../services/clients';
 
 export default function Sales() {
@@ -29,7 +31,7 @@ export default function Sales() {
       discount_payment_method_id: '' 
     } 
   });
-  
+
   const { handleSubmit, watch } = methods;
 
   interface SalesFilters {
@@ -58,7 +60,7 @@ export default function Sales() {
       setLoading(false);
     }
   }, []);
-  
+
   const onSubmit = (data: SalesFilters) => {
     loadSales(data);
   };
@@ -91,7 +93,7 @@ export default function Sales() {
         params: formValues,
         responseType: 'blob'
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       
       const link = document.createElement('a');
@@ -113,6 +115,18 @@ export default function Sales() {
 
   const handleEditSale = (sale: any) => {
     navigate(`/ventas/${sale.id}`);
+  };
+
+  const handleApprovePayment = async (sale: any) => {
+    try {
+      // Send manual payment approval to backend
+      await api.post(postManualPaymentRoute(), { sale_id: sale.id });
+      // reload list preserving filters
+      const currentFilters = methods.getValues();
+      loadSales(currentFilters);
+    } catch (e) {
+      console.error('Error aprobando pago:', e);
+    }
   };
 
   return (
@@ -206,9 +220,35 @@ export default function Sales() {
               label: 'Comentario', 
               render: s => s.comment || '-'
             },
+            {
+              label: 'Pago',
+              render: s => {
+                if (s.payment_approved || s.payment_status === 'approved') return 'Aprobado';
+                if (Array.isArray(s.payments) && s.payments.some((p: any) => p.status === 'approved' || p.approved)) return 'Aprobado';
+                return 'A confirmar';
+              }
+            },
             { 
               label: 'Estado', 
               render: s => s.active ? 'Activo' : 'Inactivo'
+            },
+            {
+              label: 'Acciones',
+              render: s => (
+                <Box display="flex" gap={1} justifyContent="center">
+                  <Tooltip title="Aprobar pago">
+                    <IconButton
+                      color="primary"
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleApprovePayment(s); }}
+                      disabled={!!(s.payment_approved || s.payment_status === 'approved' || (Array.isArray(s.payments) && s.payments.some((p: any) => p.status === 'approved' || p.approved)))}
+                    >
+                      <CheckIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              ),
+              align: 'center'
             },
           ]}
           data={sales}
