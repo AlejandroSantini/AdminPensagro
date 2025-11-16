@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, IconButton, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import DeleteButton from './DeleteButton';
 import { OutlinedButton } from './OutlinedButton';
 
@@ -12,7 +12,7 @@ interface ImageUploaderProps {
   recommendText?: string;
 }
 
-export default function ImageUploader({ value = [], onChange, multiple = true, accept = 'image/*', placeholder = 'SUBIR IMAGEN', recommendText }: ImageUploaderProps) {
+export default function ImageUploader({ value = [], onChange, multiple = true, accept = 'image/*', placeholder = 'Subir Imagen', recommendText }: ImageUploaderProps) {
   const fileInputId = React.useMemo(() => `image-uploader-input-${Math.random().toString(36).slice(2,9)}`, []);
 
   const handleFiles = (files: FileList | null) => {
@@ -50,7 +50,7 @@ export default function ImageUploader({ value = [], onChange, multiple = true, a
         <input id={fileInputId} type="file" accept={accept} multiple={multiple} style={{ display: 'none' }} onChange={onInputChange} />
 
         {value.length === 0 ? (
-          <Button variant="contained" onClick={() => document.getElementById(fileInputId)?.click()} sx={{ bgcolor: '#e0e0e0', color: '#666' }}>{placeholder}</Button>
+          <OutlinedButton onClick={() => document.getElementById(fileInputId)?.click()}>{placeholder}</OutlinedButton>
         ) : (
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 1, justifyContent: 'center', width: '100%' }}>
             {value.map((src, idx) => (

@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const CATEGORIES_BASE = `${API_BASE}api/categories`;
+const CATEGORIES_BASE = `${API_BASE}/api/categories`;
 
 export const getCategoriesRoute = (): string => CATEGORIES_BASE;
 

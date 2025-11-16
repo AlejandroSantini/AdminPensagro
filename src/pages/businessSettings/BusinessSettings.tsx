@@ -33,21 +33,21 @@ const DEFAULT_VALUES: BusinessSettingsForm = {
   free_shipping_threshold_wholesaler: '',
   purchase_notify_emails: [{ email: '' }],
   popup: {
-    content_type: 'Imagen',
+    content_type: 'image',
     link: '',
-    link_open_type: 'same',
+    link_open_type: 'same_tab',
     status: 'inactive',
     image: '',
   },
 };
 export default function BusinessSettings() {
   const [loading, setLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveLoadingGeneral, setSaveLoadingGeneral] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   
-  const { handleSubmit, control, reset, setValue, watch, formState: { errors } } = useForm<BusinessSettingsForm>({
+  const { handleSubmit, control, reset, setValue, watch, formState: { errors }, getValues } = useForm<BusinessSettingsForm>({
     defaultValues: DEFAULT_VALUES,
   });
   
@@ -103,12 +103,13 @@ export default function BusinessSettings() {
     fetchConfig();
   }, [fetchConfig]);
 
-  const onSubmit = async (data: BusinessSettingsForm) => {
-    setSaveLoading(true);
+  const onSaveGeneral = async () => {
+    setSaveLoadingGeneral(true);
     setError(null);
     setSaveSuccess(false);
     
     try {
+      const data = getValues();
       const payload = {
         usd_ars_rate: data.usd_ars_rate,
         cbus: data.cbus,
@@ -120,7 +121,7 @@ export default function BusinessSettings() {
         purchase_notify_emails: data.purchase_notify_emails.map(item => item.email),
         popup: data.popup,
       };
-      
+
       const response = await api.put(putConfigRoute(), payload);
       if (response.data && response.data.status === true) {
         setSaveSuccess(true);
@@ -128,16 +129,16 @@ export default function BusinessSettings() {
         setError('No se pudo guardar la configuración');
       }
     } catch (err) {
-      console.error('Error saving config:', err);
+      console.error('Error saving general config:', err);
       setError('Error al guardar la configuración');
     } finally {
-      setSaveLoading(false);
+      setSaveLoadingGeneral(false);
     }
   };
 
   const tabs = [
-    { label: 'General', content: <GeneralTab control={control} errors={errors} cbusFields={cbusFields} appendCbu={appendCbu} removeCbu={removeCbu} emailFields={fields} appendEmail={append} removeEmail={remove} /> },
-    { label: 'Pop-up', content: <PopupTab control={control} watch={watch} setValue={setValue} /> },
+    { label: 'General', content: <GeneralTab control={control} errors={errors} cbusFields={cbusFields} appendCbu={appendCbu} removeCbu={removeCbu} emailFields={fields} appendEmail={append} removeEmail={remove} onSaveGeneral={onSaveGeneral} saveLoading={saveLoadingGeneral} /> },
+    { label: 'Pop-up', content: <PopupTab control={control} watch={watch} setValue={setValue} getValues={getValues} /> },
   ];
 
   return (
@@ -159,16 +160,9 @@ export default function BusinessSettings() {
       )}
 
       {!loading && (
-        <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+        <Box>
           <SimpleTabs tabs={tabs} />
-          <Box sx={{ mt: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <ContainedButton type="submit" disabled={saveLoading}>
-                {saveLoading ? <CircularProgress size={20} color="inherit" /> : 'Guardar configuración'}
-              </ContainedButton>
-            </Box>
-          </Box>
-        </form>
+        </Box>
       )}
     </Box>
   );

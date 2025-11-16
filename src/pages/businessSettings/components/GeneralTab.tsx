@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Divider } from '@mui/material';
+import { Box, Typography, Divider, CircularProgress } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import { Input } from '../../../components/common/Input';
 import AddIcon from '@mui/icons-material/Add';
@@ -15,9 +15,11 @@ interface GeneralTabProps {
   emailFields: any[];
   appendEmail: (v: any) => void;
   removeEmail: (idx: number) => void;
+  onSaveGeneral: () => void;
+  saveLoading: boolean;
 }
 
-export default function GeneralTab({ control, errors, cbusFields, appendCbu, removeCbu, emailFields, appendEmail, removeEmail }: GeneralTabProps) {
+export default function GeneralTab({ control, errors, cbusFields, appendCbu, removeCbu, emailFields, appendEmail, removeEmail, onSaveGeneral, saveLoading }: GeneralTabProps) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
@@ -141,6 +143,12 @@ export default function GeneralTab({ control, errors, cbusFields, appendCbu, rem
             Agregar email
           </ContainedButton>
         </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+        <ContainedButton type="button" onClick={onSaveGeneral} disabled={saveLoading}>
+          {saveLoading ? <CircularProgress size={20} color="inherit" /> : 'Guardar configuración'}
+        </ContainedButton>
       </Box>
     </Box>
   );
