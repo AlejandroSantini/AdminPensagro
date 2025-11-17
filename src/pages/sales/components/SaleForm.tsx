@@ -24,6 +24,33 @@ const PAYMENT_METHODS = [
   { label: 'Transferencia', value: '3' },
 ];
 
+const SALES_CHANNELS = [
+  { label: 'Tienda física', value: 'store' },
+  { label: 'WhatsApp', value: 'whatsapp' },
+  { label: 'Instagram', value: 'instagram' },
+  { label: 'Facebook', value: 'facebook' },
+  { label: 'Marketplace', value: 'marketplace' },
+  { label: 'Sitio web', value: 'website' },
+  { label: 'Teléfono', value: 'phone' },
+  { label: 'Otro', value: 'other' },
+];
+
+const SHIPPING_STATUS = [
+  { label: 'Pendiente', value: 'pending' },
+  { label: 'En preparación', value: 'preparing' },
+  { label: 'En tránsito', value: 'in_transit' },
+  { label: 'Entregado', value: 'delivered' },
+  { label: 'Cancelado', value: 'cancelled' },
+];
+
+const PAYMENT_STATUS = [
+  { label: 'Pendiente', value: 'pending' },
+  { label: 'Pagado', value: 'paid' },
+  { label: 'Pago parcial', value: 'partial' },
+  { label: 'Reembolsado', value: 'refunded' },
+  { label: 'Cancelado', value: 'cancelled' },
+];
+
 interface SaleProduct extends ProductItem {
   quantity: number;
 }
@@ -53,6 +80,9 @@ interface SaleFormData {
   discount_payment_method_id: string;
   comment: string;
   active: boolean;
+  sales_channel: string;
+  shipping_status: string;
+  payment_status: string;
   shippingData?: ShippingData;
 }
 
@@ -95,6 +125,9 @@ export default function SaleForm() {
       discount_payment_method_id: '',
       comment: '',
       active: true,
+      sales_channel: 'store',
+      shipping_status: 'pending',
+      payment_status: 'pending',
       shippingData: undefined
     }
   });
@@ -142,7 +175,10 @@ export default function SaleForm() {
                 coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
                 discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
                 comment: saleData.comment || '',
-                active: saleData.active !== undefined ? saleData.active : true
+                active: saleData.active !== undefined ? saleData.active : true,
+                sales_channel: saleData.sales_channel || 'store',
+                shipping_status: saleData.shipping_status || 'pending',
+                payment_status: saleData.payment_status || 'pending'
               });
             } catch (productErr) {
               console.error("Error loading sale products:", productErr);
@@ -157,7 +193,10 @@ export default function SaleForm() {
                 coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
                 discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
                 comment: saleData.comment || '',
-                active: saleData.active !== undefined ? saleData.active : true
+                active: saleData.active !== undefined ? saleData.active : true,
+                sales_channel: saleData.sales_channel || 'store',
+                shipping_status: saleData.shipping_status || 'pending',
+                payment_status: saleData.payment_status || 'pending'
               });
             }
           } else {
@@ -266,7 +305,10 @@ export default function SaleForm() {
         })),
         coupon_id: data.coupon_id ? parseInt(data.coupon_id) : null,
         discount_payment_method_id: null,
-        comment: data.comment || null
+        comment: data.comment || null,
+        sales_channel: data.sales_channel,
+        shipping_status: data.shipping_status,
+        payment_status: data.payment_status
       };
 
       if (data.shippingData) {
@@ -419,6 +461,53 @@ export default function SaleForm() {
                     />
                   )}
                 />
+
+                <Controller
+                  name="sales_channel"
+                  control={control}
+                  rules={{ required: 'El canal de venta es obligatorio' }}
+                  render={({ field }) => (
+                    <Select 
+                      label="Canal de la venta" 
+                      options={SALES_CHANNELS}
+                      {...field}
+                      required
+                      error={!!errors.sales_channel}
+                    />
+                  )}
+                />
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                  <Controller
+                    name="shipping_status"
+                    control={control}
+                    rules={{ required: 'El estado de envío es obligatorio' }}
+                    render={({ field }) => (
+                      <Select 
+                        label="Estado de envío" 
+                        options={SHIPPING_STATUS}
+                        {...field}
+                        required
+                        error={!!errors.shipping_status}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="payment_status"
+                    control={control}
+                    rules={{ required: 'El estado de pago es obligatorio' }}
+                    render={({ field }) => (
+                      <Select 
+                        label="Estado de pago" 
+                        options={PAYMENT_STATUS}
+                        {...field}
+                        required
+                        error={!!errors.payment_status}
+                      />
+                    )}
+                  />
+                </Box>
                 
                 <Controller
                   name="comment"

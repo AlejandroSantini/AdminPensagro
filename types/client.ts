@@ -16,9 +16,9 @@ export interface Client {
   name: string;
   lastName?: string;
   fullName?: string;
-  email: string;
+  email?: string;
   type: ClientType | string;
-  tipo?: ClientType | string; 
+  tipo?: ClientType | string;
   clientType?: ApiClientType;
   razonSocial?: string | null;
   condicionIVA?: CondicionIVA | string | null;
@@ -26,11 +26,10 @@ export interface Client {
   cuit?: string | null;
   domicilio?: string | null;
   phone?: string | null;
-  // Campos legacy para compatibilidad
   fiscalType?: string | null;
   fiscalCondition?: string | null;
   companyName?: string | null;
-  status: ClientStatus;
+  status?: ClientStatus;
   createdAt?: string;
   updatedAt?: string;
 }

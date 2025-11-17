@@ -6,6 +6,7 @@ import DashboardPage from "../pages/dashboard/Dashboard";
 import Sales from "../pages/sales/Sales";
 import SaleForm from "../pages/sales/components/SaleForm";
 import Users from "../pages/users/Users";
+import ClientForm from "../pages/users/components/ClientForm";
 import Products from "../pages/products/Products";
 import Blog from "../pages/blog/Blog";
 import BlogForm from "../pages/blog/components/BlogForm";
@@ -64,6 +65,22 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <Users />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/clientes/nuevo" 
+          element={
+            <ProtectedRoute>
+              <ClientForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/clientes/:id" 
+          element={
+            <ProtectedRoute>
+              <ClientForm />
             </ProtectedRoute>
           } 
         />

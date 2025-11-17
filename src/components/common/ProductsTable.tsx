@@ -92,12 +92,6 @@ export const ProductsTable = ({
         width: '100px',
         align: 'right'
       },
-      { 
-        label: 'Subtotal', 
-        render: (p: ProductWithQuantity) => `$${((p.price || 0) * (p.quantity || 1)).toFixed(2)}`,
-        width: '120px',
-        align: 'right'
-      },
       {
         label: 'Acciones',
         render: (p: ProductWithQuantity) => (
