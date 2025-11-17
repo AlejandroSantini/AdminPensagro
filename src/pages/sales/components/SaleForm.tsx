@@ -907,15 +907,15 @@ export default function SaleForm() {
             }}>
               <OutlinedButton 
                 onClick={handleCancel} 
-                disabled={loading}
+                loading={loading}
               >
                 Cancelar
               </OutlinedButton>
               <ContainedButton 
                 type="submit" 
-                disabled={loading}
+                loading={loading}
               >
-                {loading ? <CircularProgress size={20} color="inherit" /> : buttonText}
+                {buttonText}
               </ContainedButton>
             </Box>
           </Box>

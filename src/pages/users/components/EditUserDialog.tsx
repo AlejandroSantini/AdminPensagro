@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Alert, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Alert } from "@mui/material";
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from "../../../components/common/Input";
 import { Select } from "../../../components/common/Select";
@@ -168,9 +168,9 @@ export function EditUserDialog({ open, selectedUser, onClose, onSuccess }: EditU
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <OutlinedButton onClick={onClose} disabled={saving}>Cancelar</OutlinedButton>
-          <ContainedButton type="submit" disabled={saving}>
-            {saving ? <CircularProgress size={20} color="inherit" /> : 'Guardar'}
+          <OutlinedButton onClick={onClose} loading={saving}>Cancelar</OutlinedButton>
+          <ContainedButton type="submit" loading={saving}>
+            Guardar
           </ContainedButton>
         </DialogActions>
       </form>

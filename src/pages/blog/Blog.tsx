@@ -11,18 +11,22 @@ import { useNavigate } from 'react-router-dom';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import ImageIcon from '@mui/icons-material/Image';
 import { Table } from '../../components/common/Table';
 import type { BlogPost } from '../../../types/blog';
 import api from '../../services/api';
 import { deleteBlogPostRoute, getBlogPostsRoute } from '../../services/blog';
 import { ContainedButton } from '../../components/common/ContainedButton';
+import { OutlinedButton } from '../../components/common/OutlinedButton';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { ImageUrlGeneratorModal } from './components/ImageUrlGeneratorModal';
 
 export default function Blog() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [deletingPost, setDeletingPost] = useState<BlogPost | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openImageModal, setOpenImageModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const loadPosts = useCallback(async () => {
@@ -90,9 +94,14 @@ export default function Blog() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">Blog</Typography>
-        <ContainedButton startIcon={<AddIcon />} onClick={goToNew}>
-          Nueva Publicación
-        </ContainedButton>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <OutlinedButton startIcon={<ImageIcon />} onClick={() => setOpenImageModal(true)}>
+            Crear url de imagen
+          </OutlinedButton>
+          <ContainedButton startIcon={<AddIcon />} onClick={goToNew}>
+            Nueva Publicación
+          </ContainedButton>
+        </Box>
       </Box>
 
       <Paper elevation={0} sx={{ borderRadius: 2 }}>
@@ -149,6 +158,11 @@ export default function Blog() {
         description={`¿Estás seguro de que deseas eliminar "${deletingPost?.title}"?`}
         onConfirm={confirmDelete}
         onCancel={closeDelete}
+      />
+
+      <ImageUrlGeneratorModal
+        open={openImageModal}
+        onClose={() => setOpenImageModal(false)}
       />
     </Box>
   );

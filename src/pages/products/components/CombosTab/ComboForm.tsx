@@ -375,11 +375,11 @@ export default function ComboForm() {
           </Box>
           
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} disabled={loading}>
+            <OutlinedButton onClick={handleCancel} loading={loading}>
               Cancelar
             </OutlinedButton>
-            <ContainedButton type="submit" disabled={loading}>
-              {loading ? <CircularProgress size={20} color="inherit" /> : isEditMode ? 'Guardar cambios' : 'Crear combo'}
+            <ContainedButton type="submit" loading={loading}>
+              {isEditMode ? 'Guardar cambios' : 'Crear combo'}
             </ContainedButton>
           </Box>
         </Box>

@@ -1,22 +1,24 @@
 import React from 'react';
-import { IconButton, Tooltip, useTheme } from '@mui/material';
+import { IconButton, Tooltip, useTheme, CircularProgress } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface DeleteButtonProps {
   onClick?: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
+  loading?: boolean;
   title?: string;
 }
 
-export default function DeleteButton({ onClick, disabled, title = 'Eliminar' }: DeleteButtonProps) {
+export default function DeleteButton({ onClick, disabled, loading, title = 'Eliminar' }: DeleteButtonProps) {
   const theme = useTheme();
   const size = '40px';
+  const isDisabled = disabled || loading;
 
   return (
-    <Tooltip title={title}>
+    <Tooltip title={loading ? 'Eliminando...' : title}>
       <IconButton
         onClick={onClick}
-        disabled={disabled}
+        disabled={isDisabled}
         sx={{
           width: size,
           height: size,
@@ -24,16 +26,16 @@ export default function DeleteButton({ onClick, disabled, title = 'Eliminar' }: 
           maxHeight: size,
           borderRadius: 2,
           border: '1px solid',
-          borderColor: disabled ? theme.palette.grey[300] : theme.palette.error.main,
-          color: disabled ? theme.palette.grey[500] : theme.palette.error.main,
+          borderColor: isDisabled ? theme.palette.grey[300] : theme.palette.error.main,
+          color: isDisabled ? theme.palette.grey[500] : theme.palette.error.main,
           bgcolor: 'white',
           transition: 'background-color 150ms, color 150ms, border-color 150ms',
           '&:hover': {
-            bgcolor: disabled ? 'transparent' : theme.palette.error.main,
-            color: disabled ? theme.palette.grey[500] : theme.palette.common.white,
-            borderColor: disabled ? theme.palette.grey[300] : theme.palette.error.main,
+            bgcolor: isDisabled ? 'transparent' : theme.palette.error.main,
+            color: isDisabled ? theme.palette.grey[500] : theme.palette.common.white,
+            borderColor: isDisabled ? theme.palette.grey[300] : theme.palette.error.main,
             '& .MuiSvgIcon-root': {
-              color: disabled ? theme.palette.grey[500] : theme.palette.common.white,
+              color: isDisabled ? theme.palette.grey[500] : theme.palette.common.white,
             },
           },
           '&.Mui-disabled': {
@@ -44,7 +46,11 @@ export default function DeleteButton({ onClick, disabled, title = 'Eliminar' }: 
           },
         }}
       >
-        <DeleteIcon />
+        {loading ? (
+          <CircularProgress size={20} color="inherit" />
+        ) : (
+          <DeleteIcon />
+        )}
       </IconButton>
     </Tooltip>
   );

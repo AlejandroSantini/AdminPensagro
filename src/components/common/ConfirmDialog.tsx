@@ -32,7 +32,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       </DialogContent>
     )}
     <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-      <OutlinedButton onClick={onCancel} disabled={loading}>{cancelText}</OutlinedButton>
+      <OutlinedButton onClick={onCancel} loading={loading}>{cancelText}</OutlinedButton>
       <ContainedButton onClick={onConfirm} color="error" loading={loading}>{confirmText}</ContainedButton>
     </DialogActions>
   </Dialog>

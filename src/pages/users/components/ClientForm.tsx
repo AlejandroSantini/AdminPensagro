@@ -313,9 +313,9 @@ export default function ClientForm() {
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} disabled={loading}>Cancelar</OutlinedButton>
-            <ContainedButton type="submit" disabled={loading}>
-              {loading ? <CircularProgress size={20} color="inherit" /> : buttonText}
+            <OutlinedButton onClick={handleCancel} loading={loading}>Cancelar</OutlinedButton>
+            <ContainedButton type="submit" loading={loading}>
+              {buttonText}
             </ContainedButton>
           </Box>
         </form>

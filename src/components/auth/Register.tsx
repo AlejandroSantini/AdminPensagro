@@ -242,9 +242,9 @@ export default function Register({ onRegister, onSwitchToLogin }: RegisterProps)
             <ContainedButton
               type="submit"
               fullWidth
-              disabled={loading}
+              loading={loading}
             >
-              {loading ? "Creando cuenta..." : "Crear cuenta"}
+              Crear cuenta
             </ContainedButton>
 
             <Box sx={{ textAlign: "center", mt: 2 }}>

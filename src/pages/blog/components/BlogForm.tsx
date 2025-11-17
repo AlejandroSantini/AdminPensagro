@@ -326,11 +326,11 @@ export default function BlogForm() {
           </Box>
           
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} disabled={loading}>
+            <OutlinedButton onClick={handleCancel} loading={loading}>
               Cancelar
             </OutlinedButton>
-            <ContainedButton type="submit" disabled={loading || !content}>
-              {loading ? <CircularProgress size={20} color="inherit" /> : buttonText}
+            <ContainedButton type="submit" disabled={!content} loading={loading}>
+              {buttonText}
             </ContainedButton>
           </Box>
         </Box>

@@ -140,12 +140,12 @@ export default function Login() {
               type="submit"
               fullWidth
               disabled={
-                loading ||
                 !watch("email") ||
                 !watch("password")
               }
+              loading={loading}
             >
-              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+              Iniciar sesión
             </ContainedButton>
 
           </Box>

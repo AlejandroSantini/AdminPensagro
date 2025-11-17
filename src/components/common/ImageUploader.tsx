@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
-import DeleteButton from './DeleteButton';
-import { OutlinedButton } from './OutlinedButton';
+import { Box, Typography, IconButton } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 
 interface ImageUploaderProps {
   value?: string[]; // array of dataURLs or existing URLs
@@ -10,10 +10,21 @@ interface ImageUploaderProps {
   accept?: string;
   placeholder?: string;
   recommendText?: string;
+  emptyText?: string;
+  supportText?: string;
 }
 
-export default function ImageUploader({ value = [], onChange, multiple = true, accept = 'image/*', placeholder = 'Subir Imagen', recommendText }: ImageUploaderProps) {
-  const fileInputId = React.useMemo(() => `image-uploader-input-${Math.random().toString(36).slice(2,9)}`, []);
+export default function ImageUploader({ 
+  value = [], 
+  onChange, 
+  multiple = true, 
+  accept = 'image/*', 
+  placeholder = 'Subir Imagen', 
+  recommendText,
+  emptyText = 'Haz clic aquí o arrastra imágenes para subirlas',
+  supportText = 'Soporta: JPG, PNG, GIF, WebP'
+}: ImageUploaderProps) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -32,7 +43,9 @@ export default function ImageUploader({ value = [], onChange, multiple = true, a
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFiles(e.target.files);
-    e.currentTarget.value = '';
+    if (e.currentTarget) {
+      e.currentTarget.value = '';
+    }
   };
 
   const removeAt = (index: number) => {
@@ -43,34 +56,129 @@ export default function ImageUploader({ value = [], onChange, multiple = true, a
   return (
     <Box>
       {recommendText && (
-        <Typography variant="body2" color="text.secondary" mb={1}>{recommendText}</Typography>
+        <Typography variant="body2" color="text.secondary" mb={1}>
+          {recommendText}
+        </Typography>
       )}
-      <Box sx={{ border: '1px dashed #ddd', borderRadius: 1, minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', p: 1 }}>
+      
+      <input 
+        ref={fileInputRef}
+        type="file" 
+        accept={accept} 
+        multiple={multiple} 
+        style={{ display: 'none' }} 
+        onChange={onInputChange} 
+      />
 
-        <input id={fileInputId} type="file" accept={accept} multiple={multiple} style={{ display: 'none' }} onChange={onInputChange} />
-
+      <Box
+        sx={{
+          border: '2px dashed #ddd',
+          borderRadius: 2,
+          minHeight: 200,
+          p: 2,
+          cursor: 'pointer',
+          position: 'relative',
+          '&:hover': {
+            borderColor: 'primary.main',
+            bgcolor: 'action.hover',
+          },
+        }}
+        onClick={() => fileInputRef.current?.click()}
+      >
         {value.length === 0 ? (
-          <OutlinedButton onClick={() => document.getElementById(fileInputId)?.click()}>{placeholder}</OutlinedButton>
-        ) : (
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 1, justifyContent: 'center', width: '100%' }}>
-            {value.map((src, idx) => (
-              <Box key={idx} sx={{ position: 'relative', border: '1px solid #e0e0e0', borderRadius: 2, p: 1 }}>
-                <Box sx={{ width: 120, height: 120, overflow: 'hidden', borderRadius: 1 }}>
-                  <img src={src} alt={`img-${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </Box>
-                <Box sx={{ position: 'absolute', top: 6, right: 6 }}>
-                  <DeleteButton onClick={() => removeAt(idx)} />
-                </Box>
-              </Box>
-            ))}
-
-            {multiple && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <OutlinedButton onClick={() => document.getElementById(fileInputId)?.click()}>
-                  Agregar
-                </OutlinedButton>
-              </Box>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 180,
+            }}
+          >
+            <AddPhotoAlternateIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              {emptyText}
+            </Typography>
+            {supportText && (
+              <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+                {supportText}
+              </Typography>
             )}
+          </Box>
+        ) : (
+          <Box>
+            {multiple && (
+              <Typography variant="subtitle2" mb={2} sx={{ pointerEvents: 'none' }}>
+                {value.length} imagen(es) seleccionada(s)
+              </Typography>
+            )}
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {value.map((src, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    position: 'relative',
+                    width: 120,
+                    height: 120,
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    bgcolor: 'white',
+                  }}
+                >
+                  <img
+                    src={src}
+                    alt={`img-${idx}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    sx={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255, 255, 255, 0.9)',
+                      '&:hover': {
+                        bgcolor: 'rgba(255, 255, 255, 1)',
+                      },
+                      color: 'error.main',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAt(idx);
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+
+              {multiple && (
+                <Box
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    border: '2px dashed #bbb',
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'rgba(0, 0, 0, 0.02)',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                  }}
+                >
+                  <AddPhotoAlternateIcon sx={{ fontSize: 32, color: 'text.secondary' }} />
+                </Box>
+              )}
+            </Box>
           </Box>
         )}
       </Box>

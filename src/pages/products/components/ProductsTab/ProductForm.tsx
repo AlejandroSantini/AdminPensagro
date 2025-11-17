@@ -628,10 +628,10 @@ export default function ProductForm() {
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} disabled={loading}>
+            <OutlinedButton onClick={handleCancel} loading={loading}>
               Cancelar
             </OutlinedButton>
-            <ContainedButton type="submit" disabled={loading}>
+            <ContainedButton type="submit" loading={loading}>
               {buttonText}
             </ContainedButton>
           </Box>

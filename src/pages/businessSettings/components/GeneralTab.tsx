@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Divider, CircularProgress } from '@mui/material';
+import { Box, Typography, Divider } from '@mui/material';
 import { Controller } from 'react-hook-form';
 import { Input } from '../../../components/common/Input';
 import AddIcon from '@mui/icons-material/Add';
@@ -146,8 +146,8 @@ export default function GeneralTab({ control, errors, cbusFields, appendCbu, rem
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-        <ContainedButton type="button" onClick={onSaveGeneral} disabled={saveLoading}>
-          {saveLoading ? <CircularProgress size={20} color="inherit" /> : 'Guardar configuración'}
+        <ContainedButton type="button" onClick={onSaveGeneral} loading={saveLoading}>
+          Guardar configuración
         </ContainedButton>
       </Box>
     </Box>

@@ -177,8 +177,8 @@ export default function PopupTab({ control, watch, setValue, getValues }: PopupT
       )}
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-        <ContainedButton type="button" onClick={handleSavePopup} disabled={saveLoading}>
-          {saveLoading ? <CircularProgress size={20} color="inherit" /> : 'Guardar configuración'}
+        <ContainedButton type="button" onClick={handleSavePopup} loading={saveLoading}>
+          Guardar configuración
         </ContainedButton>
       </Box>
     </Box>

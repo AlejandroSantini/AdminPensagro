@@ -175,10 +175,10 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
         </DialogContent>
         
         <DialogActions>
-          <OutlinedButton onClick={onClose} disabled={loading}>
+          <OutlinedButton onClick={onClose} loading={loading}>
             Cancelar
           </OutlinedButton>
-          <ContainedButton type="submit" disabled={loading}>
+          <ContainedButton type="submit" loading={loading}>
             {initialData ? 'Guardar cambios' : 'Crear categoría'}
           </ContainedButton>
         </DialogActions>
