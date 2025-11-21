@@ -20,6 +20,7 @@ import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import { ProductsTable } from '../../../../components/common/ProductsTable';
 import { AddProductModal, type ProductItem } from '../../../../components/modals/AddProductModal';
+import ImageUploader from '../../../../components/common/ImageUploader';
 import api from '../../../../services/api';
 import { getComboByIdRoute, postComboRoute, putComboRoute } from '../../../../services/combos';
 import type { Combo, ComboFormData, ProductRef } from '../../../../../types/combo';
@@ -34,6 +35,8 @@ export default function ComboForm() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<ProductRef[]>([]);
   const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string[]>([]);
+  const [existingImage, setExistingImage] = useState<string>('');
 
   const { control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ComboFormData>({
     defaultValues: {
@@ -42,6 +45,7 @@ export default function ComboForm() {
       products: [],
       price: '',
       featured: false,
+      image: '',
     },
   });
   
@@ -115,11 +119,16 @@ export default function ComboForm() {
             products: apiCombo.products || [],
             price: parseFloat(apiCombo.total_price),
             featured: apiCombo.featured,
-            status: apiCombo.active ? 'active' : 'archived'
+            status: apiCombo.active ? 'active' : 'archived',
+            image: apiCombo.image || ''
           };
           
           setCombo(localCombo);
           setSelectedProducts(localCombo.products || []);
+          
+          if (localCombo.image) {
+            setExistingImage(localCombo.image);
+          }
           
           reset({
             id: localCombo.id,
@@ -128,6 +137,7 @@ export default function ComboForm() {
             products: localCombo.products.map(p => p.id),
             price: localCombo.price.toString(),
             featured: localCombo.featured,
+            image: localCombo.image || '',
           });
         } catch (e) {
           console.error('Error loading combo:', e);
@@ -152,22 +162,34 @@ export default function ComboForm() {
     }
     
     try {
-      const apiPayload = {
-        name: data.name,
-        description: data.description || '',
-        products: selectedProducts.map(product => ({
-          id: product.id,
-          quantity: product.quantity || 1
-        })),
-        total_price: data.price,
-        featured: data.featured,
-        active: true
-      };
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('description', data.description || '');
+      formData.append('total_price', data.price);
+      formData.append('featured', data.featured ? '1' : '0');
+      formData.append('active', '1');
       
+      selectedProducts.forEach((product, index) => {
+        formData.append(`products[${index}][id]`, product.id.toString());
+        formData.append(`products[${index}][quantity]`, (product.quantity || 1).toString());
+      });
+      
+      if (selectedImage.length > 0 && selectedImage[0].startsWith('data:')) {
+        const response = await fetch(selectedImage[0]);
+        const blob = await response.blob();
+        formData.append('image', blob, 'combo-image.png');
+      } else if (existingImage && selectedImage.length === 0) {
+        formData.append('remove_image', '1');
+      }
+
       if (isEditMode) {
-        await api.put(putComboRoute(Number(id)), apiPayload);
+        await api.post(putComboRoute(Number(id)), formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       } else {
-        await api.post(postComboRoute(), apiPayload);
+        await api.post(postComboRoute(), formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       }
       
       navigate('/productos', { state: { activeTab: 2 } });
@@ -340,6 +362,27 @@ export default function ComboForm() {
                   />
                 )}
               />
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Imagen del combo
+                </Typography>
+                <ImageUploader
+                  value={existingImage ? [existingImage] : selectedImage}
+                  onChange={(images) => {
+                    setSelectedImage(images);
+                    if (images.length > 0 && images[0].startsWith('data:')) {
+                      setExistingImage('');
+                    } else if (images.length === 0) {
+                      setExistingImage('');
+                    }
+                  }}
+                  multiple={false}
+                  accept="image/*"
+                  emptyText="Haz clic aquí o arrastra una imagen"
+                  supportText="Soporta: JPG, PNG, GIF, WebP"
+                />
+              </Box>
             </Box>
             
             <Box sx={{ flex: 1 }}>

@@ -44,15 +44,7 @@ export default function Sales() {
     setLoading(true);
     try {
       const res = await api.get(getSalesRoute(), { params: filterValues });
-      // Maneja el nuevo formato de respuesta: { ok: true, data: [...] }
-      if (res.data && res.data.ok && Array.isArray(res.data.data)) {
-        setSales(res.data.data);
-      } else if (res.data && res.data.status === "success" && Array.isArray(res.data.data)) {
-        // Formato anterior por compatibilidad
-        setSales(res.data.data);
-      } else {
-        setSales([]);
-      }
+      setSales(res.data.data.sales || []);
     } catch (e) {
       console.error('Error al cargar ventas:', e);
       setSales([]);

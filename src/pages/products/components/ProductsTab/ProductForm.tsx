@@ -609,9 +609,6 @@ export default function ProductForm() {
           
           <Divider sx={{ my: 3 }} />
 
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Cargar Imágenes
-          </Typography>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Cargar Imágenes</Typography>
             <ImageUploader

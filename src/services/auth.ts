@@ -38,7 +38,7 @@ export interface ApiResponse<T> {
 class Auth {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      const response = await api.post<ApiResponse<AuthResponse>>('api/users/login', credentials);
+      const response = await api.post<ApiResponse<AuthResponse>>('/api/users/login', credentials);
       if (response.data.status) {
         const authData = response.data.data;
         // Guarda cliente y token por separado

@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const SHIPPING_BASE = `${API_BASE}api/shipping`;
+const SHIPPING_BASE = `${API_BASE}/api/shipping`;
 
 export const getShippingProvidersRoute = (): string => `${SHIPPING_BASE}/providers`;
 

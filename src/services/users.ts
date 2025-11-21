@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const USERS_BASE = `${API_BASE}api/users`;
+const USERS_BASE = `${API_BASE}/api/users`;
 
 export const registerUserRoute = (): string => `${USERS_BASE}/register`;
 

@@ -22,6 +22,13 @@ export interface ProductItem {
   price_usd?: number | string;
   sku?: string;
   stock?: number;
+  variants?: Array<{
+    id: number;
+    name: string;
+    price_wholesale_usd: number;
+    price_retail_usd: number;
+    quantity: number;
+  }>;
 }
 
 interface AddProductModalProps {
@@ -64,12 +71,20 @@ export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductMo
   };
 
   const handleSelectProduct = (product: any) => {
+    let basePrice = 0;
+    if (product.variants && product.variants.length > 0) {
+      basePrice = parseFloat(product.variants[0].price_retail_usd || 0);
+    } else {
+      basePrice = parseFloat(product.price_usd || 0);
+    }
+    
     const productToAdd: ProductItem = {
       id: product.id,
       name: product.name,
-      price: parseFloat(product.price_usd || 0),
+      price: basePrice,
       sku: product.sku,
-      stock: product.stock
+      stock: product.stock,
+      variants: product.variants || []
     };
     
     onProductSelect(productToAdd);
@@ -136,7 +151,16 @@ export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductMo
             columns={[
               { label: 'SKU', render: (p: any) => p.sku },
               { label: 'Nombre', render: (p: any) => p.name },
-              { label: 'Precio', render: (p: any) => `$${p.price_usd}` },
+              { 
+                label: 'Precio', 
+                render: (p: any) => {
+                  // Mostrar el precio de la primera variante si existe, sino price_usd
+                  if (p.variants && p.variants.length > 0) {
+                    return `$${p.variants[0].price_retail_usd}`;
+                  }
+                  return `$${p.price_usd || '0'}`;
+                }
+              },
               { label: 'Stock', render: (p: any) => p.stock },
             ]}
             data={products}

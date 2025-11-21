@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const CONFIG_BASE = `${API_BASE}api/config`;
+const CONFIG_BASE = `${API_BASE}/api/config`;
 
 export const getConfigRoute = (): string => CONFIG_BASE;
 

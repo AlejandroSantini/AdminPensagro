@@ -17,6 +17,7 @@ import { ContainedButton } from '../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../components/common/OutlinedButton';
 import ImageUploader from '../../../components/common/ImageUploader';
 import api from '../../../services/api';
+import { uploadGeneratedImageRoute } from '../../../services/upload';
 
 interface ImageUrlGeneratorModalProps {
   open: boolean;
@@ -77,7 +78,7 @@ export function ImageUrlGeneratorModal({ open, onClose }: ImageUrlGeneratorModal
         formData.append('images', file);
       });
 
-      const response = await api.post('/api/upload/generated-url', formData, {
+      const response = await api.post(uploadGeneratedImageRoute(), formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

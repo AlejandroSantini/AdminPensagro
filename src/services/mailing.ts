@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const MAILING_BASE = `${API_BASE}api/mailing`;
+const MAILING_BASE = `${API_BASE}/api/mailing`;
 
 export const postMailingOrderConfirmationRoute = (): string => `${MAILING_BASE}/order-confirmation`;
 

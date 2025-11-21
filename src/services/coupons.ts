@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const COUPONS_BASE = `${API_BASE}api/coupons`;
+const COUPONS_BASE = `${API_BASE}/api/coupons`;
 
 export const getCouponsRoute = (): string => COUPONS_BASE;
 

@@ -39,14 +39,24 @@ const defaultValues: ClientFormValues = {
 };
 
 const normalizePurchase = (raw: any): ClientPurchase => {
+  const products = raw.products || [];
+  const productNames = products.map((item: any) => {
+    const productName = item.product?.name || 'Producto';
+    const variantName = item.variant?.name;
+    const quantity = item.quantity || 1;
+    return variantName ? `${productName} (${variantName}) x${quantity}` : `${productName} x${quantity}`;
+  }).join(', ');
+  
+  const totalQuantity = products.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+  
   return {
     id: Number(raw.id || Date.now()),
     saleId: Number(raw.id || Date.now()),
-    date: raw.date || '',
-    product: raw.product_name || '-',
-    quantity: Number(raw.quantity) || 0,
+    date: raw.created_at || raw.date || '',
+    product: productNames || '-',
+    quantity: totalQuantity,
     total: Number(raw.total) || 0,
-    status: raw.status || '-',
+    status: raw.payment_status || raw.status || 'pending',
   };
 };
 
@@ -126,8 +136,8 @@ export default function ClientForm() {
 
       try {
         const res = await api.get(getSalesByClientRoute(Number(id)));
-        const data = Array.isArray(res.data?.data) ? res.data.data : res.data;
-        const mapped = Array.isArray(data) ? data.map(normalizePurchase) : [];
+        const salesData = res.data?.data?.sales || res.data?.data || [];
+        const mapped = Array.isArray(salesData) ? salesData.map(normalizePurchase) : [];
         setHistory(mapped);
       } catch (err) {
         setHistory([]);

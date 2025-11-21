@@ -51,8 +51,21 @@ const PAYMENT_STATUS = [
   { label: 'Cancelado', value: 'cancelled' },
 ];
 
-interface SaleProduct extends ProductItem {
+interface SaleProduct {
+  id: number;
+  name: string;
+  price?: number;
   quantity: number;
+  sku?: string;
+  stock?: number;
+  variants?: Array<{
+    id: number | string;
+    name: string;
+    price_wholesale_usd: number | string;
+    price_retail_usd: number | string;
+    quantity: number | string;
+  }>;
+  selectedVariantId?: number | string | null;
 }
 
 interface ShippingData {
@@ -148,36 +161,48 @@ export default function SaleForm() {
         
         try {
           const response = await api.get(getSaleByIdRoute(id));
-          if (response.data && (response.data.ok || response.data.status === "success")) {
+          console.log('📦 Respuesta de getSaleById:', response.data);
+          if (response.data && (response.data.ok || response.data.status === "success" || response.data.status === true)) {
             const saleData = response.data.data;
+            console.log('📦 Datos de la venta:', saleData);
             
             try {
               const productsResponse = await api.get(getSaleProductsRoute(id));
+              console.log('📦 Respuesta de getSaleProducts:', productsResponse.data);
               const productsData = productsResponse.data && productsResponse.data.data ? 
                 productsResponse.data.data : [];
+              console.log('📦 Productos data:', productsData);
               
-              const products = productsData.map((p: any) => ({
-                id: p.product_id || p.id,
-                name: p.name || p.product_name || `Producto #${p.product_id || p.id}`,
-                price: parseFloat(p.price || '0'),
-                quantity: p.quantity || 1,
-                sku: p.sku || ''
-              }));
+              const products = productsData.map((item: any) => {
+                // La estructura viene como: { product: {...}, variant: {...}, quantity, variant_id }
+                const product = item.product || {};
+                const variant = item.variant || {};
+                
+                return {
+                  id: product.id || item.product_id,
+                  name: product.name || `Producto #${product.id}`,
+                  price: item.unit_price_usd || parseFloat(variant.price_retail_usd || product.price_usd || '0'),
+                  quantity: item.quantity || 1,
+                  sku: product.sku || '',
+                  variants: product.variants || [],
+                  selectedVariantId: item.variant_id || null
+                };
+              });
               
               setSelectedProducts(products);
               
               reset({
                 client_id: saleData.client_id.toString(),
-                user_id: saleData.user_id.toString(),
+                user_id: saleData.user_id ? saleData.user_id.toString() : getCurrentUserId(),
                 products: products,
-                total: parseFloat(saleData.total),
-                exchange_rate: parseFloat(saleData.exchange_rate),
+                total: parseFloat(saleData.total || '0'),
+                exchange_rate: 1,
                 coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
                 discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
                 comment: saleData.comment || '',
                 active: saleData.active !== undefined ? saleData.active : true,
-                sales_channel: saleData.sales_channel || 'store',
-                shipping_status: saleData.shipping_status || 'pending',
+                sales_channel: saleData.channel || 'store',
+                shipping_status: 'pending',
                 payment_status: saleData.payment_status || 'pending'
               });
             } catch (productErr) {
@@ -186,16 +211,16 @@ export default function SaleForm() {
               
               reset({
                 client_id: saleData.client_id.toString(),
-                user_id: saleData.user_id.toString(),
+                user_id: saleData.user_id ? saleData.user_id.toString() : getCurrentUserId(),
                 products: [],
-                total: parseFloat(saleData.total),
-                exchange_rate: parseFloat(saleData.exchange_rate),
+                total: parseFloat(saleData.total || '0'),
+                exchange_rate: 1,
                 coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
                 discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
                 comment: saleData.comment || '',
                 active: saleData.active !== undefined ? saleData.active : true,
-                sales_channel: saleData.sales_channel || 'store',
-                shipping_status: saleData.shipping_status || 'pending',
+                sales_channel: saleData.channel || 'store',
+                shipping_status: 'pending',
                 payment_status: saleData.payment_status || 'pending'
               });
             }
@@ -266,12 +291,24 @@ export default function SaleForm() {
   };
 
   const handleAddProduct = (product: ProductItem) => {
+    console.log('📦 4. ProductItem recibido en SaleForm:', product);
     const newProduct: SaleProduct = {
-      ...product,
-      quantity: 1
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      sku: product.sku,
+      stock: product.stock,
+      quantity: 1,
+      selectedVariantId: null,
+      variants: product.variants || []
     };
     
-    setSelectedProducts(prev => [...prev, newProduct]);
+    console.log('📦 5. newProduct a agregar al estado en SaleForm:', newProduct);
+    setSelectedProducts(prev => {
+      const newState = [...prev, newProduct];
+      console.log('📦 6. Nuevo estado de selectedProducts:', newState);
+      return newState;
+    });
     closeProductModal();
   };
 
@@ -287,45 +324,61 @@ export default function SaleForm() {
     );
   };
 
+  const handleUpdateVariant = (productId: number, variantId: number | string | null) => {
+    setSelectedProducts(prev => 
+      prev.map(p => {
+        if (p.id === productId) {
+          let newPrice = p.price;
+          if (variantId && p.variants) {
+            const variant = p.variants.find(v => v.id == variantId);
+            if (variant) {
+              const price = typeof variant.price_retail_usd === 'string' 
+                ? parseFloat(variant.price_retail_usd) 
+                : variant.price_retail_usd;
+              newPrice = price;
+            }
+          }
+          return { ...p, selectedVariantId: variantId, price: newPrice };
+        }
+        return p;
+      })
+    );
+  };
+
   const onSubmit = async (data: SaleFormData) => {
     setLoading(true);
     setError(null);
     
     try {
-      const calculatedTotal = calculateTotal();
-      
       const apiPayload: any = {
         client_id: parseInt(data.client_id),
-        user_id: parseInt(data.user_id),
-        total: data.total || calculatedTotal,
-        exchange_rate: data.exchange_rate,
-        products: selectedProducts.map(p => ({
-          product_id: p.id,
-          quantity: p.quantity
-        })),
+        payment_method: data.discount_payment_method_id === '1' ? 'cash' : 
+                       data.discount_payment_method_id === '2' ? 'credit_card' : 
+                       data.discount_payment_method_id === '3' ? 'transfer' : 'cash',
+        payment_status: data.payment_status,
+        products: selectedProducts.map(p => {
+          const productData: any = {
+            product_id: p.id,
+            quantity: p.quantity
+          };
+          if (p.selectedVariantId) {
+            productData.variant_id = parseInt(String(p.selectedVariantId));
+          }
+          return productData;
+        }),
         coupon_id: data.coupon_id ? parseInt(data.coupon_id) : null,
-        discount_payment_method_id: null,
+        discount_payment_method_id: data.discount_payment_method_id ? parseInt(data.discount_payment_method_id) : null,
+        payment_method_discount_percent: 0,
+        coupon_discount_percent: null,
+        channel: data.sales_channel,
         comment: data.comment || null,
-        sales_channel: data.sales_channel,
-        shipping_status: data.shipping_status,
-        payment_status: data.payment_status
+        cbu_destination: null,
+        invoice_number: null,
+        shipping_id: null
       };
 
       if (data.shippingData) {
-        apiPayload.shippingData = {
-          recipient_name: data.shippingData.recipient_name,
-          contact_phone: data.shippingData.contact_phone,
-          street: data.shippingData.street,
-          street_number: data.shippingData.street_number,
-          floor: data.shippingData.floor || null,
-          neighborhood: data.shippingData.neighborhood || null,
-          city: data.shippingData.city,
-          province: data.shippingData.province,
-          postal_code: data.shippingData.postal_code,
-          references: data.shippingData.references || null,
-          shipping_type: data.shippingData.shipping_type,
-          cost: parseFloat(String(data.shippingData.cost)) || 0
-        };
+        apiPayload.shipping_id = null;
       }
 
       if (isEditMode && id) {
@@ -868,6 +921,7 @@ export default function SaleForm() {
                   onAddProduct={openProductModal}
                   onRemoveProduct={handleRemoveProduct}
                   onUpdateQuantity={handleUpdateQuantity}
+                  onUpdateVariant={handleUpdateVariant}
                   allowQuantityEdit={true}
                   showTotal={true}
                   emptyMessage="Aún no hay productos seleccionados"
@@ -907,7 +961,7 @@ export default function SaleForm() {
             }}>
               <OutlinedButton 
                 onClick={handleCancel} 
-                loading={loading}
+                disabled={loading}
               >
                 Cancelar
               </OutlinedButton>

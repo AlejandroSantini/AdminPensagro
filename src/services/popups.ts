@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const POPUPS_BASE = `${API_BASE}api/popup`;
+const POPUPS_BASE = `${API_BASE}/api/popup`;
 
 export const getPopupsRoute = (): string => `${POPUPS_BASE}s`;
 

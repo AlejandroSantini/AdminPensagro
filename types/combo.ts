@@ -13,6 +13,7 @@ export interface ApiCombo {
   total_price: string;
   featured: boolean;
   active: boolean;
+  image?: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +26,7 @@ export interface Combo {
   price: number;
   featured: boolean;
   status: 'active' | 'archived';
+  image?: string;
 }
 
 export interface ComboFormData {
@@ -34,4 +36,5 @@ export interface ComboFormData {
   products: number[];
   price: string;
   featured: boolean;
+  image?: string;
 }

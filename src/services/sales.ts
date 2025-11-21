@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const SALES_BASE = `${API_BASE}api/sales`;
+const SALES_BASE = `${API_BASE}/api/sales`;
 
 export const getSalesRoute = (): string => SALES_BASE;
 

@@ -18,4 +18,4 @@ export const unlinkCategoryRoute = (): string => `${CATEGORIES_BASE}/unlink`;
 export const getCategoriesByProductRoute = (productId: number | string): string => `${CATEGORIES_BASE}/product/${productId}`;
 
 // Subcategories helper (no explicit spec but still used in UI)
-export const getSubcategoriesRoute = (): string => `${API_BASE}api/subcategories`;
+export const getSubcategoriesRoute = (): string => `${API_BASE}/api/subcategories`;

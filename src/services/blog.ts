@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const BLOG_BASE = `${API_BASE}api/blog`;
+const BLOG_BASE = `${API_BASE}/api/blog`;
 
 export const getBlogPostsRoute = (): string => BLOG_BASE;
 

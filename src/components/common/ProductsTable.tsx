@@ -4,6 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { Table } from './Table';
 import { Input } from './Input';
+import { Select } from './Select';
 import { ContainedButton } from './ContainedButton';
 
 export interface ProductWithQuantity {
@@ -12,6 +13,14 @@ export interface ProductWithQuantity {
   price?: number;
   quantity?: number;
   sku?: string;
+  variants?: Array<{
+    id: number | string;
+    name: string;
+    price_wholesale_usd: number | string;
+    price_retail_usd: number | string;
+    quantity: number | string;
+  }>;
+  selectedVariantId?: number | string | null;
 }
 
 interface ProductsTableProps {
@@ -19,6 +28,7 @@ interface ProductsTableProps {
   onAddProduct: () => void;
   onRemoveProduct: (productId: number) => void;
   onUpdateQuantity?: (productId: number, quantity: number) => void;
+  onUpdateVariant?: (productId: number, variantId: number | string | null) => void;
   allowQuantityEdit?: boolean;
   showTotal?: boolean;
   emptyMessage?: string;
@@ -32,6 +42,7 @@ export const ProductsTable = ({
   onAddProduct,
   onRemoveProduct,
   onUpdateQuantity,
+  onUpdateVariant,
   allowQuantityEdit = false,
   showTotal = false,
   emptyMessage = "No hay productos seleccionados",
@@ -43,8 +54,21 @@ export const ProductsTable = ({
   const calculateTotal = () => {
     return products.reduce((sum, product) => {
       const quantity = product.quantity || 1;
-      return sum + ((product.price || 0) * quantity);
+      const price = getProductPrice(product);
+      return sum + (price * quantity);
     }, 0);
+  };
+
+  const getProductPrice = (product: ProductWithQuantity): number => {
+    if (product.selectedVariantId && product.variants) {
+      const variant = product.variants.find(v => v.id == product.selectedVariantId); // usar == para comparar string y number
+      if (variant) {
+        return typeof variant.price_retail_usd === 'string' 
+          ? parseFloat(variant.price_retail_usd) 
+          : variant.price_retail_usd;
+      }
+    }
+    return product.price || 0;
   };
 
   const getColumns = () => {
@@ -64,6 +88,41 @@ export const ProductsTable = ({
         render: (p: ProductWithQuantity) => p.name 
       },
       { 
+        label: 'Variante', 
+        render: (p: ProductWithQuantity) => {
+          console.log('📦 7. Renderizando fila en ProductsTable para:', p.name, '| Objeto completo:', p);
+          
+          if (!p.variants || p.variants.length === 0) {
+            return <Typography variant="body2" color="text.secondary">Sin variantes</Typography>;
+          }
+          
+          if (onUpdateVariant) {
+            return (
+              <Select 
+                label=""
+                value={String(p.selectedVariantId || '')}
+                onChange={(e) => onUpdateVariant(p.id, e.target.value ? String(e.target.value) : null)}
+                options={[
+                  { value: '', label: 'Producto base' },
+                  ...p.variants.map(v => ({
+                    value: String(v.id),
+                    label: `${v.name} - $${v.price_retail_usd}`
+                  }))
+                ]}
+              />
+            );
+          }
+          
+          if (p.selectedVariantId) {
+            const variant = p.variants.find(v => v.id == p.selectedVariantId); // usar == para comparar string y number
+            return variant ? variant.name : 'Producto base';
+          }
+          
+          return 'Producto base';
+        },
+        width: '200px'
+      },
+      { 
         label: 'Cantidad', 
         render: (p: ProductWithQuantity) => {
           if (allowQuantityEdit && onUpdateQuantity) {
@@ -75,7 +134,6 @@ export const ProductsTable = ({
                   value={p.quantity || 1} 
                   onChange={(e) => onUpdateQuantity(p.id, parseInt(e.target.value) || 1)}
                   variant="outlined" 
-                  sx={{ width: 70, '& .MuiInputBase-input': { py: 0.5, px: 1 } }}
                   inputProps={{ min: 1 }}
                 />
               </Box>
@@ -88,7 +146,7 @@ export const ProductsTable = ({
       },
       { 
         label: 'Precio', 
-        render: (p: ProductWithQuantity) => `$${p.price || 0}`,
+        render: (p: ProductWithQuantity) => `$${getProductPrice(p)}`,
         width: '100px',
         align: 'right'
       },

@@ -17,13 +17,14 @@ const normalizeClient = (raw: any): Client => {
   const rawType = raw?.client_type ?? raw?.clientType ?? raw?.type ?? raw?.tipo ?? "retailer";
   const statusValue = raw?.status ?? raw?.estado ?? "active";
   const status = typeof statusValue === "boolean" ? (statusValue ? "active" : "inactive") : String(statusValue);
-  const name = (raw?.name
+  const name = (raw?.user_name
+    || raw?.name
     || raw?.full_name
     || raw?.fullName
     || raw?.user?.name
     || "") as string;
   const lastName = (raw?.lastName || raw?.last_name || "") as string;
-  const email = (raw?.email || raw?.user?.email || "") as string;
+  const email = (raw?.user_email || raw?.email || raw?.user?.email || "") as string;
   const safeName = name.trim();
   const safeLastName = lastName.trim();
   const safeEmail = email || "";
@@ -41,18 +42,18 @@ const normalizeClient = (raw: any): Client => {
     userId: raw?.user_id ?? raw?.userId ?? undefined,
     name: safeName || safeEmail || "-",
     lastName: safeLastName || undefined,
-    fullName: raw?.fullName || raw?.full_name || (safeName && safeLastName ? `${safeName} ${safeLastName}` : undefined),
+    fullName: raw?.user_name || raw?.fullName || raw?.full_name || (safeName && safeLastName ? `${safeName} ${safeLastName}` : undefined),
     email: safeEmail,
     type,
     razonSocial: raw?.razonSocial || raw?.razon_social || raw?.companyName || raw?.company_name || raw?.business_name || null,
-    condicionIVA: raw?.condicionIVA || raw?.condicion_iva || raw?.fiscalCondition || raw?.fiscal_condition || null,
+    condicionIVA: raw?.fiscal_condition || raw?.condicionIVA || raw?.condicion_iva || raw?.fiscalCondition || null,
     dni: raw?.dni || null,
     cuit: raw?.cuit || null,
     domicilio: raw?.domicilio || raw?.address || null,
     phone: raw?.phone || raw?.telefono || raw?.user?.phone || null,
     // Campos legacy para compatibilidad
     fiscalType: raw?.fiscalType || raw?.fiscal_type || raw?.fiscal_tipo || raw?.fiscal_condition || raw?.condicionIVA || raw?.condicion_iva || null,
-    fiscalCondition: raw?.fiscalCondition || raw?.fiscal_condition || raw?.condicionIVA || raw?.condicion_iva || null,
+    fiscalCondition: raw?.fiscal_condition || raw?.fiscalCondition || raw?.condicionIVA || raw?.condicion_iva || null,
     companyName: raw?.companyName || raw?.company_name || raw?.business_name || raw?.razonSocial || raw?.razon_social || null,
     status,
     createdAt: raw?.createdAt || raw?.created_at,
@@ -158,24 +159,23 @@ export default function Users() {
           columns={[
             { 
               label: 'Nombre', 
-              render: (c: Client) => {
-                if (c.fullName) return c.fullName;
-                if (c.lastName) return `${c.name} ${c.lastName}`;
-                return c.name || '-';
-              }
-            },
-            { label: 'Email', render: (c: Client) => c.email || '-' },
-            { 
-              label: 'Razón Social', 
-              render: (c: Client) => c.razonSocial || c.companyName || '-' 
+              render: (c: Client) => c.fullName || c.name || '-'
             },
             { 
-              label: 'Condición IVA', 
-              render: (c: Client) => c.condicionIVA || c.fiscalCondition || c.fiscalType || '-' 
+              label: 'Email', 
+              render: (c: Client) => c.email || '-' 
             },
             { 
-              label: 'CUIT/DNI', 
-              render: (c: Client) => c.cuit || c.dni || '-' 
+              label: 'DNI', 
+              render: (c: Client) => c.dni || '-' 
+            },
+            { 
+              label: 'Teléfono', 
+              render: (c: Client) => c.phone || '-' 
+            },
+            { 
+              label: 'Condición Fiscal', 
+              render: (c: Client) => c.fiscalCondition || c.condicionIVA || '-' 
             },
             { 
               label: 'Tipo', 

@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const CLIENTS_BASE = `${API_BASE}api/clients`;
+const CLIENTS_BASE = `${API_BASE}/api/clients`;
 
 export const getClientsRoute = (): string => CLIENTS_BASE;
 

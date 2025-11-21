@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const PAYMENTS_BASE = `${API_BASE}api/payments`;
+const PAYMENTS_BASE = `${API_BASE}/api/payments`;
 
 export const paymentsMpWebhookRoute = (): string => `${PAYMENTS_BASE}/mp/webhook`;
 

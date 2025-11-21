@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
-const COMBOS_BASE = `${API_BASE}api/combos`;
+const COMBOS_BASE = `${API_BASE}/api/combos`;
 
 export const getCombosRoute = (): string => COMBOS_BASE;
 
