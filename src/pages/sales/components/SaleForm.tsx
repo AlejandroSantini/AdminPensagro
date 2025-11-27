@@ -5,17 +5,20 @@ import { Controller, useForm, FormProvider } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import { Input } from '../../../components/common/Input';
+import { SearchInput } from '../../../components/common/SearchInput';
 import { ContainedButton } from '../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../components/common/OutlinedButton';
 import { Select } from '../../../components/common/Select';
 import { ProductsTable } from '../../../components/common/ProductsTable';
 import { AddProductModal } from '../../../components/modals/AddProductModal';
+import { ClientSearchModal } from '../../../components/modals/ClientSearchModal';
 import type { ProductItem } from '../../../components/modals/AddProductModal';
 import { CustomPaper } from '../../../components/common/CustomPaper';
 import api from '../../../services/api';
 import { getSaleByIdRoute, getSaleProductsRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
-import { getClientsRoute } from '../../../services/clients';
+import { getClientByIdRoute } from '../../../services/clients';
 import { getCouponsRoute } from '../../../services/coupons';
+import type { Client } from '../../../../types/client';
 
 
 const PAYMENT_METHODS = [
@@ -105,8 +108,9 @@ export default function SaleForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [clientModalOpen, setClientModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<SaleProduct[]>([]);
-  const [clients, setClients] = useState<{label: string, value: string}[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [coupons, setCoupons] = useState<{label: string, value: string}[]>([]);
   const [hasShipping, setHasShipping] = useState(false);
   
@@ -240,9 +244,16 @@ export default function SaleForm() {
   }, [id, reset, isEditMode]);
 
   useEffect(() => {
-    fetchClients();
     fetchCoupons();
   }, []);
+
+  const clientId = watch('client_id');
+  
+  useEffect(() => {
+    if (isEditMode && clientId && !selectedClient) {
+      loadClientDataForEdit(clientId);
+    }
+  }, [clientId, selectedClient, isEditMode]);
 
   const fetchCoupons = async () => {
     try {
@@ -260,20 +271,33 @@ export default function SaleForm() {
     }
   };
   
-  const fetchClients = async () => {
+  const loadClientDataForEdit = async (clientId: string) => {
     try {
-      const clientsResponse = await api.get(getClientsRoute());
-      if (clientsResponse.data && clientsResponse.data.status === "success") {
-        const clientsData = clientsResponse.data.data.map((client: any) => ({
-          label: client.user_name,
-          value: client.id.toString()
-        }));
-        setClients(clientsData);
+      const response = await api.get(getClientByIdRoute(clientId));
+      if (response.data && response.data.status === "success") {
+        const clientData = response.data.data;
+        setSelectedClient({
+          id: clientData.id,
+          name: clientData.user_name || clientData.name || '',
+          email: clientData.email || '',
+          phone: clientData.phone || '',
+          type: clientData.client_type || clientData.type || 'retailer',
+          status: clientData.status || 'active'
+        });
       }
     } catch (err) {
-      console.error("Error fetching clients:", err);
-      setError("Error al cargar los clientes. Por favor, intente nuevamente.");
+      console.error("Error loading client:", err);
     }
+  };
+
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setValue('client_id', client.id.toString());
+  };
+
+  const handleClearClient = () => {
+    setSelectedClient(null);
+    setValue('client_id', '');
   };
 
 
@@ -291,7 +315,6 @@ export default function SaleForm() {
   };
 
   const handleAddProduct = (product: ProductItem) => {
-    console.log('📦 4. ProductItem recibido en SaleForm:', product);
     const newProduct: SaleProduct = {
       id: product.id,
       name: product.name,
@@ -303,10 +326,8 @@ export default function SaleForm() {
       variants: product.variants || []
     };
     
-    console.log('📦 5. newProduct a agregar al estado en SaleForm:', newProduct);
     setSelectedProducts(prev => {
       const newState = [...prev, newProduct];
-      console.log('📦 6. Nuevo estado de selectedProducts:', newState);
       return newState;
     });
     closeProductModal();
@@ -451,20 +472,42 @@ export default function SaleForm() {
                   Datos de la venta
                 </Typography>
                 
-                <Controller
-                  name="client_id"
-                  control={control}
-                  rules={{ required: 'El cliente es obligatorio' }}
-                  render={({ field }) => (
-                    <Select 
-                      label="Cliente" 
-                      options={clients} 
-                      {...field} 
-                      required
-                      error={!!errors.client_id}
-                    />
+                <Box>
+                  <SearchInput
+                    label="Cliente *"
+                    value={selectedClient ? 
+                      (selectedClient.name ? `${selectedClient.email} - ${selectedClient.name}` : selectedClient.email) 
+                      : ''}
+                    onClick={() => setClientModalOpen(true)}
+                    placeholder="Buscar cliente"
+                    error={!!errors.client_id}
+                    showClear={!!selectedClient}
+                    onClear={handleClearClient}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: errors.client_id ? 'error.main' : 'primary.main',
+                        },
+                        '& fieldset': {
+                          borderColor: errors.client_id ? 'error.main' : undefined,
+                        }
+                      }
+                    }}
+                  />
+                  <Controller
+                    name="client_id"
+                    control={control}
+                    rules={{ required: 'El cliente es obligatorio' }}
+                    render={({ field }) => (
+                      <input type="hidden" {...field} />
+                    )}
+                  />
+                  {errors.client_id && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                      {errors.client_id.message}
+                    </Typography>
                   )}
-                />
+                </Box>
                 
                 <input 
                   type="hidden" 
@@ -980,6 +1023,12 @@ export default function SaleForm() {
         open={modalOpen}
         onClose={closeProductModal}
         onProductSelect={handleAddProduct}
+      />
+
+      <ClientSearchModal
+        open={clientModalOpen}
+        onClose={() => setClientModalOpen(false)}
+        onSelectClient={handleSelectClient}
       />
     </Box>
   );

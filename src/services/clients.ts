@@ -8,3 +8,5 @@ export const getClientByIdRoute = (id: number | string): string => `${CLIENTS_BA
 export const putClientRoute = (id: number | string): string => `${CLIENTS_BASE}/${id}`;
 
 export const postClientRoute = (): string => `${CLIENTS_BASE}`;
+
+export const searchClientsRoute = (): string => `${CLIENTS_BASE}/search`;
