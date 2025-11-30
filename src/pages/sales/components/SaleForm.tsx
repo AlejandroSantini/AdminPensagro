@@ -15,7 +15,7 @@ import { ClientSearchModal } from '../../../components/modals/ClientSearchModal'
 import type { ProductItem } from '../../../components/modals/AddProductModal';
 import { CustomPaper } from '../../../components/common/CustomPaper';
 import api from '../../../services/api';
-import { getSaleByIdRoute, getSaleProductsRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
+import { getSaleByIdRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
 import { getClientByIdRoute } from '../../../services/clients';
 import { getCouponsRoute } from '../../../services/coupons';
 import type { Client } from '../../../../types/client';
@@ -170,64 +170,41 @@ export default function SaleForm() {
             const saleData = response.data.data;
             console.log('📦 Datos de la venta:', saleData);
             
-            try {
-              const productsResponse = await api.get(getSaleProductsRoute(id));
-              console.log('📦 Respuesta de getSaleProducts:', productsResponse.data);
-              const productsData = productsResponse.data && productsResponse.data.data ? 
-                productsResponse.data.data : [];
-              console.log('📦 Productos data:', productsData);
+            // Los productos vienen dentro de saleData.products
+            const productsData = saleData.products || [];
+
+            const products = productsData.map((item: any) => {
+              // La estructura viene como: { product: {...}, variant: {...}, quantity, variant_id }
+              const product = item.product || {};
+              const variant = item.variant || {};
               
-              const products = productsData.map((item: any) => {
-                // La estructura viene como: { product: {...}, variant: {...}, quantity, variant_id }
-                const product = item.product || {};
-                const variant = item.variant || {};
-                
-                return {
-                  id: product.id || item.product_id,
-                  name: product.name || `Producto #${product.id}`,
-                  price: item.unit_price_usd || parseFloat(variant.price_retail_usd || product.price_usd || '0'),
-                  quantity: item.quantity || 1,
-                  sku: product.sku || '',
-                  variants: product.variants || [],
-                  selectedVariantId: item.variant_id || null
-                };
-              });
-              
-              setSelectedProducts(products);
-              
-              reset({
-                client_id: saleData.client_id.toString(),
-                user_id: saleData.user_id ? saleData.user_id.toString() : getCurrentUserId(),
-                products: products,
-                total: parseFloat(saleData.total || '0'),
-                exchange_rate: 1,
-                coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
-                discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
-                comment: saleData.comment || '',
-                active: saleData.active !== undefined ? saleData.active : true,
-                sales_channel: saleData.channel || 'store',
-                shipping_status: 'pending',
-                payment_status: saleData.payment_status || 'pending'
-              });
-            } catch (productErr) {
-              console.error("Error loading sale products:", productErr);
-              setSelectedProducts([]);
-              
-              reset({
-                client_id: saleData.client_id.toString(),
-                user_id: saleData.user_id ? saleData.user_id.toString() : getCurrentUserId(),
-                products: [],
-                total: parseFloat(saleData.total || '0'),
-                exchange_rate: 1,
-                coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
-                discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
-                comment: saleData.comment || '',
-                active: saleData.active !== undefined ? saleData.active : true,
-                sales_channel: saleData.channel || 'store',
-                shipping_status: 'pending',
-                payment_status: saleData.payment_status || 'pending'
-              });
-            }
+              return {
+                id: product.id || item.product_id,
+                name: product.name || `Producto #${product.id}`,
+                price: item.unit_price_usd || parseFloat(variant.price_retail_usd || product.price_usd || '0'),
+                quantity: item.quantity || 1,
+                sku: product.sku || '',
+                variants: product.variants || [],
+                selectedVariantId: item.variant_id || null
+              };
+            });
+            
+            setSelectedProducts(products);
+            
+            reset({
+              client_id: saleData.client_id.toString(),
+              user_id: saleData.user_id ? saleData.user_id.toString() : getCurrentUserId(),
+              products: products,
+              total: parseFloat(saleData.total_usd || saleData.total || '0'),
+              exchange_rate: parseFloat(saleData.exchange_rate || '1'),
+              coupon_id: saleData.coupon_id ? saleData.coupon_id.toString() : '',
+              discount_payment_method_id: saleData.discount_payment_method_id ? saleData.discount_payment_method_id.toString() : '',
+              comment: saleData.comment || '',
+              active: saleData.status === 'active',
+              sales_channel: saleData.channel || 'store',
+              shipping_status: 'pending',
+              payment_status: saleData.payment_status || 'pending'
+            });
           } else {
             setError("No se pudo cargar la venta");
           }
