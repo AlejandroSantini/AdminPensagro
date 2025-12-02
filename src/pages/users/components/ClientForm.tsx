@@ -13,29 +13,15 @@ import api from '../../../services/api';
 import { postClientRoute, putClientRoute, getClientByIdRoute } from '../../../services/clients';
 import { getSalesByClientRoute } from '../../../services/sales';
 import { translateToSpanish } from '../../../utils/translations';
-import type { Client, ClientFormValues, ClientPurchase } from '../../../../types/client';
+import type { Client, ClientPurchase } from '../../../../types/client';
 
-const defaultValues: ClientFormValues = {
-  id: 0,
-  userId: undefined,
+const defaultValues = {
   name: '',
-  lastName: '',
-  fullName: '',
   email: '',
-  type: 'retailer',
-  clientType: 'retailer',
-  razonSocial: '',
-  condicionIVA: 'Consumidor Final',
-  dni: '',
-  cuit: '',
-  domicilio: '',
+  client_type: 'retailer',
+  fiscal_condition: '',
   phone: '',
-  fiscalType: '',
-  fiscalCondition: '',
-  companyName: '',
-  status: 'active',
-  createdAt: '',
-  updatedAt: '',
+  dni: '',
 };
 
 const normalizePurchase = (raw: any): ClientPurchase => {
@@ -82,7 +68,7 @@ export default function ClientForm() {
   const pageTitle = isEditMode ? 'Editar Cliente' : 'Nuevo Cliente';
   const buttonText = isEditMode ? 'Guardar Cambios' : 'Crear Cliente';
 
-  const { handleSubmit, control, reset, formState: { errors } } = useForm<ClientFormValues>({ defaultValues });
+  const { handleSubmit, control, reset, formState: { errors } } = useForm({ defaultValues });
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -97,24 +83,12 @@ export default function ClientForm() {
         setClient(clientData);
 
         reset({
-          id: clientData.id || 0,
-          userId: clientData.userId || clientData.user_id,
-          name: clientData.name || clientData.full_name || '',
-          lastName: clientData.lastName || clientData.last_name || '',
-          fullName: clientData.fullName || clientData.full_name || '',
-          email: clientData.email || '',
-          type: clientData.type || clientData.client_type || 'retailer',
-          clientType: clientData.clientType || clientData.client_type || 'retailer',
-          razonSocial: clientData.razonSocial || clientData.razon_social || '',
-          condicionIVA: clientData.condicionIVA || clientData.condicion_iva || 'Consumidor Final',
-          dni: clientData.dni || '',
-          cuit: clientData.cuit || '',
-          domicilio: clientData.domicilio || clientData.address || '',
+          name: clientData.user_name || clientData.name || '',
+          email: clientData.user_email || clientData.email || '',
+          client_type: clientData.client_type || 'retailer',
+          fiscal_condition: clientData.fiscal_condition || '',
           phone: clientData.phone || '',
-          fiscalType: clientData.fiscalType || clientData.fiscal_type || '',
-          fiscalCondition: clientData.fiscalCondition || clientData.fiscal_condition || '',
-          companyName: clientData.companyName || clientData.company_name || '',
-          status: clientData.status || 'active',
+          dni: clientData.dni || '',
         });
       } catch (e) {
         console.error('Error al cargar cliente:', e);
@@ -150,36 +124,17 @@ export default function ClientForm() {
     fetchHistory();
   }, [id, isEditMode]);
 
-  const onSubmit = async (data: ClientFormValues) => {
+  const onSubmit = async (data: typeof defaultValues) => {
     setError(null);
     setLoading(true);
 
-    const clientType = data.type || data.clientType || 'retailer';
-
     const payload = {
       name: data.name,
-      last_name: data.lastName,
       email: data.email,
-      type: clientType === 'retailer' ? 'minorista' : 'mayorista',
-      tipo: clientType === 'retailer' ? 'minorista' : 'mayorista',
-      client_type: clientType,
-      razon_social: data.razonSocial || '',
-      razonSocial: data.razonSocial || '',
-      condicion_iva: data.condicionIVA || '',
-      condicionIVA: data.condicionIVA || '',
-      dni: data.dni || '',
-      cuit: data.cuit || '',
-      domicilio: data.domicilio || '',
-      address: data.domicilio || '',
+      client_type: data.client_type,
+      fiscal_condition: data.fiscal_condition || '',
       phone: data.phone || '',
-      fiscalType: data.fiscalType || '',
-      fiscal_type: data.fiscalType || '',
-      fiscalCondition: data.fiscalCondition || data.fiscalType || '',
-      fiscal_condition: data.fiscalCondition || data.fiscalType || '',
-      status: data.status,
-      companyName: data.companyName || '',
-      company_name: data.companyName || '',
-      user_id: data.userId,
+      dni: data.dni || '',
     };
 
     try {
@@ -232,7 +187,7 @@ export default function ClientForm() {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h6">
-          {isEditMode && client ? `Editar Cliente: ${client.name}` : pageTitle}
+          {isEditMode && client ? `Editar Cliente: ${(client as any).user_name || client.name}` : pageTitle}
         </Typography>
       </Box>
 
@@ -267,63 +222,41 @@ export default function ClientForm() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
             <Controller name="name" control={control} rules={{ required: 'El nombre es obligatorio' }} render={({ field }) => (
-              <Input label="Nombre" {...field} variant="outlined" error={!!errors.name} helperText={errors.name?.message} />
-            )} />
-
-            <Controller name="lastName" control={control} render={({ field }) => (
-              <Input label="Apellido" {...field} variant="outlined" />
-            )} />
-
-            <Controller name="razonSocial" control={control} render={({ field }) => (
-              <Input label="Razón Social" {...field} value={field.value ?? ''} variant="outlined" helperText="En caso de consumidor final, se usa Nombre + Apellido" />
-            )} />
-
-            <Controller name="condicionIVA" control={control} render={({ field }) => (
-              <Select label="Condición IVA" value={field.value || 'Consumidor Final'} onChange={e => field.onChange(e.target.value)} options={[
-                { value: 'Responsable Inscripto', label: 'Responsable Inscripto' },
-                { value: 'Monotributo', label: 'Monotributo' },
-                { value: 'IVA Excento', label: 'IVA Excento' },
-                { value: 'Consumidor Final', label: 'Consumidor Final' },
-              ]} />
-            )} />
-
-            <Controller name="dni" control={control} render={({ field }) => (
-              <Input label="DNI" {...field} value={field.value ?? ''} variant="outlined" helperText="Para consumidor final" />
-            )} />
-
-            <Controller name="cuit" control={control} render={({ field }) => (
-              <Input label="CUIT" {...field} value={field.value ?? ''} variant="outlined" helperText="Para otros casos" />
-            )} />
-
-            <Controller name="domicilio" control={control} render={({ field }) => (
-              <Input label="Domicilio" {...field} value={field.value ?? ''} variant="outlined" />
+              <Input label="Nombre completo" {...field} variant="outlined" error={!!errors.name} helperText={errors.name?.message} />
             )} />
 
             <Controller name="email" control={control} rules={{ required: 'El email es obligatorio' }} render={({ field }) => (
-              <Input label="Email" {...field} value={field.value ?? ''} variant="outlined" error={!!errors.email} helperText={errors.email?.message || 'Email de contacto para factura'} />
+              <Input label="Email" {...field} value={field.value ?? ''} variant="outlined" error={!!errors.email} helperText={errors.email?.message} />
             )} />
 
-            <Controller name="phone" control={control} render={({ field }) => (
-              <Input label="Teléfono de contacto" {...field} value={field.value ?? ''} variant="outlined" />
-            )} />
-
-            <Controller name="type" control={control} render={({ field }) => (
+            <Controller name="client_type" control={control} render={({ field }) => (
               <Select label="Tipo de Cliente" value={field.value || 'retailer'} onChange={e => field.onChange(e.target.value)} options={[
                 { value: 'retailer', label: 'Minorista' },
                 { value: 'wholesaler', label: 'Mayorista' },
               ]} />
             )} />
 
-            <Controller name="status" control={control} render={({ field }) => (
-              <Select label="Estado" value={field.value || 'active'} onChange={e => field.onChange(e.target.value)} options={[
-                { value: 'active', label: 'Activo' },
-                { value: 'inactive', label: 'Inactivo' },
+            <Controller name="fiscal_condition" control={control} render={({ field }) => (
+              <Select label="Condición Fiscal" value={field.value || ''} onChange={e => field.onChange(e.target.value)} options={[
+                { value: '', label: 'Sin especificar' },
+                { value: 'RI', label: 'Responsable Inscripto' },
+                { value: 'M', label: 'Monotributo' },
+                { value: 'EX', label: 'IVA Exento' },
+                { value: 'CF', label: 'Consumidor Final' },
               ]} />
+            )} />
+
+            <Controller name="phone" control={control} render={({ field }) => (
+              <Input label="Teléfono" {...field} value={field.value ?? ''} variant="outlined" />
+            )} />
+
+            <Controller name="dni" control={control} render={({ field }) => (
+              <Input label="DNI" {...field} value={field.value ?? ''} variant="outlined" />
             )} />
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} loading={loading}>Cancelar</OutlinedButton>
+            <OutlinedButton onClick={handleCancel} disabled={loading}>Cancelar</OutlinedButton>
             <ContainedButton type="submit" loading={loading}>
               {buttonText}
             </ContainedButton>
@@ -361,6 +294,7 @@ export default function ClientForm() {
                 data={history}
                 getRowKey={(row: ClientPurchase) => row.saleId}
                 emptyMessage={historyLoading ? "Cargando historial…" : "Sin compras registradas"}
+                onRowClick={(row: ClientPurchase) => navigate(`/ventas/${row.saleId}`)}
               />
             )}
           </CustomPaper>

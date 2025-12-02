@@ -44,7 +44,9 @@ export default function Sales() {
     setLoading(true);
     try {
       const res = await api.get(getSalesRoute(), { params: filterValues });
-      setSales(res.data.data.sales || []);
+      // La respuesta puede venir como data.sales o directamente como data (array)
+      const salesData = res.data.data?.sales || res.data.data || [];
+      setSales(Array.isArray(salesData) ? salesData : []);
     } catch (e) {
       console.error('Error al cargar ventas:', e);
       setSales([]);
@@ -178,34 +180,34 @@ export default function Sales() {
                 return client ? client.label : `Cliente #${s.client_id}`;
               }
             },
-            { 
+            {
               label: 'Total', 
               render: s => {
-                const total = parseFloat(s.total || '0');
-                return `$${total.toFixed(2)}`;
+                const total = parseFloat(s.total_ars || '0');
+                return `$${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
               }
             },
             { 
               label: 'Tasa de Cambio', 
               render: s => {
                 const rate = parseFloat(s.exchange_rate || '1');
-                return rate.toFixed(2);
+                return rate.toLocaleString('es-AR', { minimumFractionDigits: 2 });
               }
             },
             { 
               label: 'Método de Pago', 
               render: s => {
-                const methodId = s.discount_payment_method_id;
-                if (!methodId) return '-';
+                const method = s.payment_method;
+                if (!method) return '-';
                 
-                // Map payment method IDs to names
                 const paymentMethods: Record<string, string> = {
-                  '1': 'Efectivo',
-                  '2': 'Tarjeta de Crédito',
-                  '3': 'Transferencia',
+                  'cash': 'Efectivo',
+                  'credit_card': 'Tarjeta de Crédito',
+                  'transfer': 'Transferencia',
+                  'debit_card': 'Tarjeta de Débito',
                 };
                 
-                return paymentMethods[methodId] || `Método #${methodId}`;
+                return paymentMethods[method] || method;
               }
             },
             { 
@@ -215,14 +217,18 @@ export default function Sales() {
             {
               label: 'Pago',
               render: s => {
-                if (s.payment_approved || s.payment_status === 'approved') return 'Aprobado';
-                if (Array.isArray(s.payments) && s.payments.some((p: any) => p.status === 'approved' || p.approved)) return 'Aprobado';
-                return 'A confirmar';
+                const status = s.payment_status;
+                const statusLabels: Record<string, string> = {
+                  'approved': 'Aprobado',
+                  'pending': 'Pendiente',
+                  'rejected': 'Rechazado',
+                };
+                return statusLabels[status] || status || 'Pendiente';
               }
             },
             { 
               label: 'Estado', 
-              render: s => s.active ? 'Activo' : 'Inactivo'
+              render: s => s.status === 'active' ? 'Activo' : 'Inactivo'
             },
             {
               label: 'Acciones',
@@ -233,7 +239,7 @@ export default function Sales() {
                       color="primary"
                       size="small"
                       onClick={(e) => { e.stopPropagation(); handleApprovePayment(s); }}
-                      disabled={!!(s.payment_approved || s.payment_status === 'approved' || (Array.isArray(s.payments) && s.payments.some((p: any) => p.status === 'approved' || p.approved)))}
+                      disabled={s.payment_status === 'approved'}
                     >
                       <CheckIcon fontSize="small" />
                     </IconButton>

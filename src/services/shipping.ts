@@ -8,3 +8,7 @@ export const putShippingProviderRoute = (id: number | string): string => `${SHIP
 export const postShippingEstimateRoute = (): string => `${SHIPPING_BASE}/estimate`;
 
 export const postShippingLabelRoute = (saleId: number | string): string => `${SHIPPING_BASE}/label/${saleId}`;
+
+export const getClientShippingAddressesRoute = (clientId: number | string): string => `${SHIPPING_BASE}/client/${clientId}`;
+
+export const postShippingAddressRoute = (): string => SHIPPING_BASE;
