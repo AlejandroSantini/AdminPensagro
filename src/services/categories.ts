@@ -7,7 +7,11 @@ export const getCategoryByIdRoute = (id: number | string): string => `${CATEGORI
 
 export const postCategoryRoute = (): string => CATEGORIES_BASE;
 
+export const postCategoryWithImageRoute = (): string => `${API_BASE}/api/category/upload`;
+
 export const putCategoryRoute = (id: number | string): string => `${CATEGORIES_BASE}/${id}`;
+
+export const putCategoryWithImageRoute = (id: number | string): string => `${API_BASE}/api/category/upload/${id}`;
 
 export const deleteCategoryRoute = (id: number | string): string => `${CATEGORIES_BASE}/${id}`;
 

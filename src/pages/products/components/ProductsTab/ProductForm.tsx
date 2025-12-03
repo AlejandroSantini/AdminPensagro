@@ -236,13 +236,9 @@ export default function ProductForm() {
 
     try {
       if (isEditMode) {
-        await api.put(putProductRoute(id!), formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.put(putProductRoute(id!), formData);
       } else {
-        await api.post(postProductRoute(), formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post(postProductRoute(), formData);
       }
 
       setLoading(false);
@@ -625,7 +621,7 @@ export default function ProductForm() {
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} loading={loading}>
+            <OutlinedButton onClick={handleCancel} disabled={loading}>
               Cancelar
             </OutlinedButton>
             <ContainedButton type="submit" loading={loading}>

@@ -168,7 +168,7 @@ export function EditUserDialog({ open, selectedUser, onClose, onSuccess }: EditU
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <OutlinedButton onClick={onClose} loading={saving}>Cancelar</OutlinedButton>
+          <OutlinedButton onClick={onClose} disabled={saving}>Cancelar</OutlinedButton>
           <ContainedButton type="submit" loading={saving}>
             Guardar
           </ContainedButton>

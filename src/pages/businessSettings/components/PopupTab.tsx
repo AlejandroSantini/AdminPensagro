@@ -89,9 +89,7 @@ export default function PopupTab({ control, watch, setValue, getValues }: PopupT
         fd.append('image', popupData.image);
       }
 
-      const response = await api.post(postPopupRoute(), fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post(postPopupRoute(), fd);
 
       if (response?.data?.status === true) {
         setSaveSuccess(true);

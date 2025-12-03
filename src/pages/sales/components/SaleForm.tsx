@@ -3,7 +3,6 @@ import { Box, Typography, Paper, IconButton, CircularProgress, Divider, FormCont
 import { useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm, FormProvider } from 'react-hook-form';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import AddIcon from '@mui/icons-material/Add';
 import { Input } from '../../../components/common/Input';
 import { SearchInput } from '../../../components/common/SearchInput';
 import { ContainedButton } from '../../../components/common/ContainedButton';
@@ -12,13 +11,13 @@ import { Select } from '../../../components/common/Select';
 import { ProductsTable } from '../../../components/common/ProductsTable';
 import { AddProductModal } from '../../../components/modals/AddProductModal';
 import { ClientSearchModal } from '../../../components/modals/ClientSearchModal';
+import { ShippingDataForm } from '../../../components/common/ShippingDataForm';
 import type { ProductItem } from '../../../components/modals/AddProductModal';
 import { CustomPaper } from '../../../components/common/CustomPaper';
 import api from '../../../services/api';
 import { getSaleByIdRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
 import { getClientByIdRoute } from '../../../services/clients';
 import { getCouponsRoute } from '../../../services/coupons';
-import { getClientShippingAddressesRoute, postShippingAddressRoute } from '../../../services/shipping';
 import type { Client } from '../../../../types/client';
 
 
@@ -126,10 +125,7 @@ export default function SaleForm() {
   const [clientLoaded, setClientLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentShippingId, setCurrentShippingId] = useState<number | null>(null);
-  const [clientAddresses, setClientAddresses] = useState<ShippingAddress[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
-  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   
   const isEditMode = !!id;
   const pageTitle = isEditMode ? 'Editar Venta' : 'Nueva Venta';
@@ -213,14 +209,7 @@ export default function SaleForm() {
             
             setSelectedProducts(products);
             
-            // Guardar el shipping_id de la venta y seleccionarlo
-            const shippingId = saleData.shipping_id || null;
-            setCurrentShippingId(shippingId);
-            if (shippingId) {
-              setSelectedAddressId(shippingId.toString());
-            } else {
-              setShowNewAddressForm(true); // Si no tiene shipping_id, mostrar formulario
-            }
+            setCurrentShippingId(saleData.shipping_id || null);
             
             reset({
               client_id: saleData.client_id.toString(),
@@ -294,90 +283,20 @@ export default function SaleForm() {
           type: clientData.client_type || clientData.type || 'retailer',
           status: clientData.user_status || clientData.status || 'active'
         });
-        await loadClientAddresses(clientId);
       }
     } catch (err) {
       console.error("Error loading client:", err);
     }
   };
 
-  const loadClientAddresses = async (clientId: string) => {
-    setLoadingAddresses(true);
-    try {
-      const response = await api.get(getClientShippingAddressesRoute(clientId));
-      if (response.data && response.data.status === true) {
-        setClientAddresses(response.data.data || []);
-        if (currentShippingId && response.data.data?.length > 0) {
-          const existingAddress = response.data.data.find((addr: ShippingAddress) => addr.id === currentShippingId);
-          if (existingAddress) {
-            setSelectedAddressId(existingAddress.id.toString());
-          }
-        }
-      } else {
-        setClientAddresses([]);
-      }
-    } catch (err) {
-      console.error("Error loading client addresses:", err);
-      setClientAddresses([]);
-    } finally {
-      setLoadingAddresses(false);
-    }
-  };
-
   const handleSelectClient = async (client: Client) => {
     setSelectedClient(client);
     setValue('client_id', client.id.toString());
-    setSelectedAddressId('');
-    setShowNewAddressForm(false);
-    await loadClientAddresses(client.id.toString());
   };
 
   const handleClearClient = () => {
     setSelectedClient(null);
     setValue('client_id', '');
-    setClientAddresses([]);
-    setSelectedAddressId('');
-    setShowNewAddressForm(true); 
-  };
-
-  const handleAddressSelect = (addressId: string) => {
-    setSelectedAddressId(addressId);
-    setShowNewAddressForm(addressId === 'new');
-  };
-
-  const handleCreateAddress = async () => {
-    if (!selectedClient) return;
-    
-    const shippingData = methods.getValues('shippingData');
-    if (!shippingData?.first_name || !shippingData?.address) {
-      setError('Complete los campos obligatorios de la dirección');
-      return;
-    }
-
-    try {
-      const response = await api.post(postShippingAddressRoute(), {
-        client_id: parseInt(selectedClient.id.toString()),
-        first_name: shippingData.first_name,
-        last_name: shippingData.last_name,
-        address: shippingData.address,
-        apartment: shippingData.apartment,
-        city: shippingData.city,
-        province: shippingData.province,
-        postal_code: shippingData.postal_code,
-        phone: shippingData.phone
-      });
-
-      if (response.data && response.data.status === true) {
-        await loadClientAddresses(selectedClient.id.toString());
-        if (response.data.data?.id) {
-          setSelectedAddressId(response.data.data.id.toString());
-        }
-        setShowNewAddressForm(false);
-      }
-    } catch (err) {
-      console.error("Error creating address:", err);
-      setError('Error al crear la dirección');
-    }
   };
 
 
@@ -477,7 +396,7 @@ export default function SaleForm() {
         invoice_number: null
       };
 
-      if (selectedClient && selectedAddressId && selectedAddressId !== 'new') {
+      if (selectedClient && selectedAddressId) {
         apiPayload.shipping_id = parseInt(selectedAddressId);
       } else {
         apiPayload.shipping_id = null;
@@ -568,11 +487,12 @@ export default function SaleForm() {
                     value={selectedClient ? 
                       (selectedClient.dni ? `${selectedClient.dni} - ${selectedClient.name}` : selectedClient.name || selectedClient.email) 
                       : ''}
-                    onClick={() => setClientModalOpen(true)}
+                    onClick={isEditMode ? undefined : () => setClientModalOpen(true)}
                     placeholder="Buscar cliente"
                     error={!!errors.client_id}
-                    showClear={!!selectedClient}
+                    showClear={!isEditMode && !!selectedClient}
                     onClear={handleClearClient}
+                    disabled={isEditMode}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         '&:hover fieldset': {
@@ -730,164 +650,12 @@ export default function SaleForm() {
                       Datos de Envío
                     </Typography>
                     
-                    {selectedClient && (
-                      <Box sx={{ mb: 2 }}>
-                        {loadingAddresses ? (
-                          <Box display="flex" justifyContent="center" py={2}>
-                            <CircularProgress size={24} />
-                          </Box>
-                        ) : (
-                          <>
-                            <Select
-                              label="Dirección de envío"
-                              value={selectedAddressId}
-                              onChange={(e) => handleAddressSelect(e.target.value as string)}
-                              options={[
-                                ...clientAddresses.map(addr => ({
-                                  label: `${addr.first_name} ${addr.last_name} - ${addr.address}, ${addr.city}`,
-                                  value: addr.id.toString()
-                                })),
-                                { label: '+ Agregar nueva dirección', value: 'new' }
-                              ]}
-                            />
-                            {selectedAddressId && selectedAddressId !== 'new' && (
-                              <Box sx={{ mt: 1, p: 1.5, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-                                {(() => {
-                                  const addr = clientAddresses.find(a => a.id.toString() === selectedAddressId);
-                                  if (!addr) return null;
-                                  return (
-                                    <Typography variant="body2" color="text.secondary">
-                                      <strong>{addr.first_name} {addr.last_name}</strong><br />
-                                      {addr.address}{addr.apartment ? `, ${addr.apartment}` : ''}<br />
-                                      {addr.city}, {addr.province} - CP: {addr.postal_code}<br />
-                                      Tel: {addr.phone}
-                                    </Typography>
-                                  );
-                                })()}
-                              </Box>
-                            )}
-                          </>
-                        )}
-                      </Box>
-                    )}
-                    
-                    {(!selectedClient || showNewAddressForm || selectedAddressId === 'new') && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                          <Controller
-                            name="shippingData.first_name"
-                            control={control}
-                            render={({ field }) => (
-                              <Input 
-                                label="Nombre" 
-                                {...field} 
-                                variant="outlined"
-                              />
-                            )}
-                          />
-
-                          <Controller
-                            name="shippingData.last_name"
-                            control={control}
-                            render={({ field }) => (
-                              <Input 
-                                label="Apellido" 
-                                {...field} 
-                                variant="outlined"
-                              />
-                            )}
-                          />
-                        </Box>
-
-                        <Controller
-                          name="shippingData.phone"
-                          control={control}
-                          render={({ field }) => (
-                            <Input 
-                              label="Teléfono" 
-                              {...field} 
-                              variant="outlined"
-                              placeholder="+54 9 11 1234-5678"
-                            />
-                          )}
-                        />
-
-                        <Controller
-                          name="shippingData.address"
-                          control={control}
-                          render={({ field }) => (
-                            <Input 
-                              label="Dirección" 
-                              {...field} 
-                              variant="outlined"
-                              placeholder="Ej: Av. Corrientes 1234"
-                            />
-                          )}
-                        />
-
-                        <Controller
-                          name="shippingData.apartment"
-                          control={control}
-                          render={({ field }) => (
-                            <Input 
-                              label="Piso / Departamento" 
-                              {...field} 
-                              variant="outlined"
-                              placeholder="Ej: Piso 3, Depto B"
-                            />
-                          )}
-                        />
-
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
-                          <Controller
-                            name="shippingData.city"
-                            control={control}
-                            render={({ field }) => (
-                              <Input 
-                                label="Ciudad" 
-                                {...field} 
-                                variant="outlined"
-                              />
-                            )}
-                          />
-
-                          <Controller
-                            name="shippingData.province"
-                            control={control}
-                            render={({ field }) => (
-                              <Input 
-                                label="Provincia" 
-                                {...field} 
-                                variant="outlined"
-                              />
-                            )}
-                          />
-
-                          <Controller
-                            name="shippingData.postal_code"
-                            control={control}
-                            render={({ field }) => (
-                              <Input 
-                                label="Código Postal" 
-                                {...field} 
-                                variant="outlined"
-                              />
-                            )}
-                          />
-                        </Box>
-
-                        {selectedClient && selectedAddressId === 'new' && (
-                          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <OutlinedButton 
-                              onClick={handleCreateAddress}
-                              startIcon={<AddIcon />}
-                            >
-                              Guardar dirección
-                            </OutlinedButton>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
+                    <ShippingDataForm 
+                      clientId={selectedClient?.id}
+                      initialAddressId={currentShippingId}
+                      onAddressChange={setSelectedAddressId}
+                      onError={setError}
+                    />
                   </Paper>
                 </Box>
                 

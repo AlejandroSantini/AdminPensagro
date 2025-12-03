@@ -78,11 +78,7 @@ export function ImageUrlGeneratorModal({ open, onClose }: ImageUrlGeneratorModal
         formData.append('images', file);
       });
 
-      const response = await api.post(uploadGeneratedImageRoute(), formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post(uploadGeneratedImageRoute(), formData);
 
       if (response.data.status && response.data.files) {
         setUploadedFiles(response.data.files);

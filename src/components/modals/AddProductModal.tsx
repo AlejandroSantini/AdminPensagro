@@ -154,7 +154,6 @@ export const AddProductModal = ({ open, onClose, onProductSelect }: AddProductMo
               { 
                 label: 'Precio', 
                 render: (p: any) => {
-                  // Mostrar el precio de la primera variante si existe, sino price_usd
                   if (p.variants && p.variants.length > 0) {
                     return `$${p.variants[0].price_retail_usd}`;
                   }

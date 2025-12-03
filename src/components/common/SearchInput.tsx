@@ -9,12 +9,13 @@ interface SearchInputProps extends Omit<TextFieldProps, 'variant'> {
   showClear?: boolean;
 }
 
-export function SearchInput({ onClear, showClear, InputProps, ...props }: SearchInputProps) {
+export function SearchInput({ onClear, showClear, InputProps, disabled, ...props }: SearchInputProps) {
   return (
     <TextField
       fullWidth
       variant="outlined"
       size="small"
+      disabled={disabled}
       {...props}
       InputProps={{
         startAdornment: (
@@ -51,10 +52,10 @@ export function SearchInput({ onClear, showClear, InputProps, ...props }: Search
         mt: 0,
         '& .MuiInputBase-root': {
           borderRadius: 2,
-          cursor: 'pointer',
+          cursor: disabled ? 'default' : 'pointer',
         },
         '& .MuiInputBase-input': {
-          cursor: 'pointer',
+          cursor: disabled ? 'default' : 'pointer',
         },
         ...props.sx,
       }}

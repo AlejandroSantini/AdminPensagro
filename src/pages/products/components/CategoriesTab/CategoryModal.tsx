@@ -1,11 +1,12 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, FormControlLabel, Checkbox } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, FormControlLabel, Checkbox, Box, Typography } from '@mui/material';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import { Controller, useForm } from 'react-hook-form';
 import { Input } from '../../../../components/common/Input';
+import ImageUploader from '../../../../components/common/ImageUploader';
 import { useState, useEffect } from 'react';
 import api from '../../../../services/api';
-import { postCategoryRoute, putCategoryRoute, getCategoriesRoute } from '../../../../services/categories';
+import { postCategoryWithImageRoute, putCategoryWithImageRoute, getCategoriesRoute } from '../../../../services/categories';
 
 export interface Category {
   id: number;
@@ -14,6 +15,7 @@ export interface Category {
   featured: boolean;
   status: 'active' | 'archived';
   parentId?: number | null;
+  image?: string | null;
 }
 
 export interface CategoryFormData {
@@ -35,6 +37,8 @@ export interface CategoryModalProps {
 export function CategoryModal({ open, initialData, onClose, onSuccess }: CategoryModalProps) {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [images, setImages] = useState<string[]>([]);
+  const [removeImage, setRemoveImage] = useState(false);
   
   const { handleSubmit, control, watch, reset, formState: { errors } } = useForm<CategoryFormData>({
     defaultValues: {
@@ -72,6 +76,13 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
         parentId: initialData.parentId || '',
         status: initialData.status
       });
+
+      if (initialData.image) {
+        setImages([initialData.image]);
+      } else {
+        setImages([]);
+      }
+      setRemoveImage(false);
     } else {
       reset({
         name: '',
@@ -80,19 +91,37 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
         parentId: '',
         status: 'active'
       });
+      setImages([]);
+      setRemoveImage(false);
     }
   }, [initialData, reset, open]);
+
+  const handleImagesChange = (newImages: string[]) => {
+    setImages(newImages);
+    setRemoveImage(newImages.length === 0 && !!initialData?.image);
+  };
 
   const onSubmit = async (data: CategoryFormData) => {
     setLoading(true);
     try {
+      const formData = new FormData();
+      formData.append('name', data.name);
+      if (data.description) formData.append('description', data.description);
+      formData.append('featured', data.featured ? '1' : '0');
+      if (data.parentId) formData.append('parentId', String(data.parentId));
+      formData.append('status', data.status || 'active');
+      
+      if (images.length > 0) {
+        formData.append('image', images[0]);
+      }
+      if (removeImage) {
+        formData.append('remove_image', '1');
+      }
+
       if (initialData?.id) {
-        await api.put(putCategoryRoute(initialData.id), {
-          ...data,
-          id: initialData.id
-        });
+        await api.post(putCategoryWithImageRoute(initialData.id), formData);
       } else {
-        await api.post(postCategoryRoute(), data);
+        await api.post(postCategoryWithImageRoute(), formData);
       }
       
       setLoading(false);
@@ -168,14 +197,27 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
                   />
                 }
                 label="Destacada"
-                sx={{ mb: 1, ml: 0 }}
+                sx={{ mb: 2, ml: 0 }}
               />
             )}
           />
+
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+              Imagen de categoría
+            </Typography>
+            <ImageUploader
+              value={images}
+              onChange={handleImagesChange}
+              multiple={false}
+              emptyText="Haz clic aquí o arrastra una imagen"
+              supportText="Soporta: JPG, PNG, WebP"
+            />
+          </Box>
         </DialogContent>
         
         <DialogActions>
-          <OutlinedButton onClick={onClose} loading={loading}>
+          <OutlinedButton onClick={onClose} disabled={loading}>
             Cancelar
           </OutlinedButton>
           <ContainedButton type="submit" loading={loading}>

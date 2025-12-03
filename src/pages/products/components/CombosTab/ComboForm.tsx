@@ -183,13 +183,9 @@ export default function ComboForm() {
       }
 
       if (isEditMode) {
-        await api.post(putComboRoute(Number(id)), formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post(putComboRoute(Number(id)), formData);
       } else {
-        await api.post(postComboRoute(), formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post(postComboRoute(), formData);
       }
       
       navigate('/productos', { state: { activeTab: 2 } });
@@ -418,7 +414,7 @@ export default function ComboForm() {
           </Box>
           
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} loading={loading}>
+            <OutlinedButton onClick={handleCancel} disabled={loading}>
               Cancelar
             </OutlinedButton>
             <ContainedButton type="submit" loading={loading}>

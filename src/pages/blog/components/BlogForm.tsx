@@ -326,7 +326,7 @@ export default function BlogForm() {
           </Box>
           
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <OutlinedButton onClick={handleCancel} loading={loading}>
+            <OutlinedButton onClick={handleCancel} disabled={loading}>
               Cancelar
             </OutlinedButton>
             <ContainedButton type="submit" disabled={!content} loading={loading}>
