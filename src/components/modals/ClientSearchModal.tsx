@@ -12,6 +12,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { Input } from '../common/Input';
 import { Select } from '../common/Select';
 import { Table } from '../common/Table';
+import { Paginator } from '../common/Paginator';
 import { OutlinedButton } from '../common/OutlinedButton';
 import { ContainedButton } from '../common/ContainedButton';
 import api from '../../services/api';
@@ -45,6 +46,9 @@ export const ClientSearchModal = ({ open, onClose, onSelectClient }: ClientSearc
     status: 'active',
     search: ''
   });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [newClient, setNewClient] = useState({
     name: '',
     dni: '',
@@ -54,11 +58,16 @@ export const ClientSearchModal = ({ open, onClose, onSelectClient }: ClientSearc
     condicion_iva: 'Consumidor Final'
   });
 
-  const loadClients = useCallback(async () => {
+  const loadClients = useCallback(async (pageNum: number = 1) => {
     setLoading(true);
     try {
-      const res = await api.get(getClientsRoute(), { params: filters });
+      const res = await api.get(getClientsRoute(), { params: { ...filters, page: pageNum, per_page: 10 } });
       setClients(res.data.data || []);
+      
+      if (res.data.meta) {
+        setTotalPages(res.data.meta.totalPages || 1);
+        setTotalItems(res.data.meta.totalItems || 0);
+      }
     } catch (e) {
       console.error('Error loading clients:', e);
       setClients([]);
@@ -66,6 +75,11 @@ export const ClientSearchModal = ({ open, onClose, onSelectClient }: ClientSearc
       setLoading(false);
     }
   }, [filters]);
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+    loadClients(newPage);
+  };
 
   const handleFilterInputChange = (field: keyof typeof filters, value: string) => {
     setFilters(prev => ({
@@ -75,7 +89,8 @@ export const ClientSearchModal = ({ open, onClose, onSelectClient }: ClientSearc
   };
   
   const handleFilterApply = () => {
-    loadClients();
+    setPage(1);
+    loadClients(1);
   };
 
   const handleSelectClient = (client: any) => {
@@ -146,7 +161,8 @@ export const ClientSearchModal = ({ open, onClose, onSelectClient }: ClientSearc
 
   useEffect(() => {
     if (open) {
-      loadClients();
+      setPage(1);
+      loadClients(1);
     }
   }, [open, loadClients]);
 
@@ -300,6 +316,12 @@ export const ClientSearchModal = ({ open, onClose, onSelectClient }: ClientSearc
             getRowKey={(c: any) => c.id}
             emptyMessage={loading ? "Cargando..." : "No hay clientes"}
             onRowClick={handleSelectClient}
+          />
+          <Paginator
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={handlePageChange}
           />
         </Box>
       </DialogContent>

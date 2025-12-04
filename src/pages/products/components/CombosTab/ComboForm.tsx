@@ -19,7 +19,7 @@ import { Input } from '../../../../components/common/Input';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import { ProductsTable } from '../../../../components/common/ProductsTable';
-import { AddProductModal, type ProductItem } from '../../../../components/modals/AddProductModal';
+import { AddProductModal, type SelectedProductWithVariant } from '../../../../components/modals/AddProductModal';
 import ImageUploader from '../../../../components/common/ImageUploader';
 import api from '../../../../services/api';
 import { getComboByIdRoute, postComboRoute, putComboRoute } from '../../../../services/combos';
@@ -73,12 +73,28 @@ export default function ComboForm() {
     setModalOpen(false);
   };
   
-  const handleProductSelect = (product: ProductItem) => {
+  const handleProductSelect = (selection: SelectedProductWithVariant) => {
+    const { product, variant } = selection;
+    
+    // Si hay variante usa su precio, si no usa el precio del producto
+    let price = 0;
+    if (variant) {
+      price = typeof variant.price_retail_usd === 'string' 
+        ? parseFloat(variant.price_retail_usd) 
+        : variant.price_retail_usd;
+    } else if (product.price_usd) {
+      price = typeof product.price_usd === 'string'
+        ? parseFloat(product.price_usd)
+        : product.price_usd;
+    }
+    
     // Convert ProductItem to ProductRef
     const productToAdd: ProductRef = {
       id: product.id,
       name: product.name,
-      price: parseFloat(product.price?.toString() || '0')
+      price: price,
+      variantId: variant ? parseInt(String(variant.id)) : undefined,
+      variantName: variant ? variant.name : undefined
     };
     
     const newSelectedIds = [...selectedProductIds, productToAdd.id];
@@ -177,7 +193,9 @@ export default function ComboForm() {
       if (selectedImage.length > 0 && selectedImage[0].startsWith('data:')) {
         const response = await fetch(selectedImage[0]);
         const blob = await response.blob();
-        formData.append('image', blob, 'combo-image.png');
+        const fileName = `combo-image-${Date.now()}.${blob.type.split('/')[1] || 'jpg'}`;
+        const file = new File([blob], fileName, { type: blob.type });
+        formData.append('image', file);
       } else if (existingImage && selectedImage.length === 0) {
         formData.append('remove_image', '1');
       }

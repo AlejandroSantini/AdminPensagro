@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Box, Typography, Alert } from "@mui/material";
 import { useNavigate } from 'react-router-dom';
 import { ClientsFilters } from './components/ClientsFilters';
 import { CustomPaper } from '../../components/common/CustomPaper';
 import { Table } from "../../components/common/Table";
+import { Paginator } from "../../components/common/Paginator";
 import api from "../../services/api";
 import { getClientsRoute } from "../../services/clients";
 import { translateToSpanish } from "../../utils/translations";
@@ -78,12 +79,20 @@ export default function Users() {
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(getClientsRoute());
+      const params: any = { page, per_page: 10 };
+      if (query) params.search = query;
+      if (filterType) params.type = filterType;
+      if (filterStatus) params.status = filterStatus;
+      
+      const res = await api.get(getClientsRoute(), { params });
       const payload = res.data;
       const rawList = Array.isArray(payload)
         ? payload
@@ -94,27 +103,30 @@ export default function Users() {
             : [];
       const mapped = Array.isArray(rawList) ? rawList.map(normalizeClient) : [];
       setClients(mapped);
+      
+      if (payload.meta) {
+        setTotalPages(payload.meta.totalPages || 1);
+        setTotalItems(payload.meta.totalItems || 0);
+      }
     } catch (err) {
       setClients([]);
       setError("No se pudieron cargar los clientes");
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, query, filterType, filterStatus]);
 
   useEffect(() => {
     loadClients();
-  }, []);
+  }, [loadClients]);
 
-  const filteredClients = useMemo(() => {
-    return clients.filter(c => {
-      if (filterType && c.type !== filterType) return false;
-      if (filterStatus && c.status !== filterStatus) return false;
-      if (!query) return true;
-      const q = query.toLowerCase();
-      return (c.fullName || c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q) || (c.razonSocial || c.companyName || '').toLowerCase().includes(q);
-    });
-  }, [clients, query, filterType, filterStatus]);
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const filteredClients = useMemo(() => {    // Si el backend ya filtra, retornamos directamente
+    return clients;
+  }, [clients]);
 
   const handleSelectClient = (client: Client) => {
     navigate(`/clientes/${client.id}`);
@@ -122,6 +134,13 @@ export default function Users() {
 
   const handleNewClient = () => {
     navigate('/clientes/nuevo');
+  };
+
+  const handleFilterChange = (field: string, value: string | null) => {
+    setPage(1); // Reset page when filters change
+    if (field === 'search') setQuery(value || '');
+    if (field === 'type') setFilterType(value || null);
+    if (field === 'status') setFilterStatus(value || null);
   };
 
   const emptyMessage = useMemo(() => (loading ? "Cargando clientes…" : "No hay clientes"), [loading]);
@@ -143,15 +162,11 @@ export default function Users() {
           search={query}
           type={filterType}
           status={filterStatus}
-          onChange={(field, value) => {
-            if (field === 'search') setQuery(value);
-            if (field === 'type') setFilterType(value || null);
-            if (field === 'status') setFilterStatus(value || null);
-          }}
+          onChange={handleFilterChange}
           onCreate={handleNewClient}
           onApply={() => {
-            // Para este listado hacemos filtering en memoria, por lo que no necesitamos recargar del servidor.
-            // Si en el futuro preferimos server-side, aquí podríamos llamar a loadClients con params.
+            setPage(1);
+            loadClients();
           }}
         />
 
@@ -191,6 +206,13 @@ export default function Users() {
           onRowClick={handleSelectClient}
           emptyMessage={emptyMessage}
           sx={{ boxShadow: 'none'}}
+        />
+
+        <Paginator
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={handlePageChange}
         />
       </CustomPaper>
     </Box>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { 
   Box, 
   Typography, 
@@ -7,14 +7,14 @@ import {
   Paper
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { Input } from '../../../../components/common/Input';
 import { Select } from '../../../../components/common/Select';
-import type { SelectOption } from '../../../../components/common/Select';
 import { Table } from '../../../../components/common/Table';
+import { Paginator } from '../../../../components/common/Paginator';
+import { usePagination } from '../../../../hooks/usePagination';
 import type { Product, CategoryRef } from '../../../../../types/product';
 import api from '../../../../services/api';
 import { deleteProductRoute, getProductsRoute } from '../../../../services/products';
@@ -22,32 +22,32 @@ import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
+interface ProductFilters {
+  status: string;
+  stock: string;
+  search: string;
+}
+
 export default function ProductTab() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  const [filters, setFilters] = useState({
-    status: 'active',
-    stock: '',
-    search: ''
-  });
   const [showFilters, setShowFilters] = useState(false);
 
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(getProductsRoute(), { params: filters });
-      setProducts(res.data.data || []);
-    } catch (e) {
-      console.error('Error al cargar productos:', e);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  const {
+    data: products,
+    page,
+    totalPages,
+    totalItems,
+    loading,
+    filters,
+    handlePageChange,
+    handleFilterChange,
+    refresh
+  } = usePagination<Product, ProductFilters>({
+    initialFilters: { status: 'active', stock: '', search: '' },
+    fetchFn: (params) => api.get(getProductsRoute(), { params: { ...params, per_page: 10 } })
+  });
 
   const handleDelete = (product: Product) => {
     setDeletingProduct(product);
@@ -64,26 +64,11 @@ export default function ProductTab() {
     try {
       await api.delete(deleteProductRoute(deletingProduct.id));
       closeDelete();
-      loadProducts();
+      refresh();
     } catch (e) {
       // Opcional: mostrar error
     }
   };
-  
-  const handleFilterInputChange = (field: keyof typeof filters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-  
-  const handleFilterApply = () => {
-    loadProducts();
-  };
-
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
 
   const goToNewProduct = () => {
     navigate('/productos/nuevo');
@@ -112,18 +97,14 @@ export default function ProductTab() {
               label="Buscar producto"
               variant="outlined"
               value={filters.search}
-              onChange={(e) => handleFilterInputChange('search', e.target.value)}
-              onBlur={handleFilterApply}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
               placeholder="Nombre, SKU..."
               sx={{ mt: 0, mb: 0 }}
             />
             <Select
               label="Estado"
               value={filters.status}
-              onChange={(e) => {
-                handleFilterInputChange('status', e.target.value as string);
-                handleFilterApply(); // Apply immediately for select fields
-              }}
+              onChange={(e) => handleFilterChange('status', e.target.value as string)}
               options={[
                 { value: '', label: 'Todos' },
                 { value: 'active', label: 'Activo' },
@@ -136,8 +117,7 @@ export default function ProductTab() {
               variant="outlined"
               type="number"
               value={filters.stock}
-              onChange={(e) => handleFilterInputChange('stock', e.target.value)}
-              onBlur={handleFilterApply}
+              onChange={(e) => handleFilterChange('stock', e.target.value)}
               sx={{ mt: 0, mb: 0 }}
             />
           </Box>
@@ -184,7 +164,14 @@ export default function ProductTab() {
         data={products}
         getRowKey={(p: Product) => p.id}
         onRowClick={goToEditProduct}
-        emptyMessage="No hay productos"
+        emptyMessage={loading ? "Cargando..." : "No hay productos"}
+      />
+
+      <Paginator
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmDialog

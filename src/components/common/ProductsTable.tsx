@@ -4,7 +4,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { Table } from './Table';
 import { Input } from './Input';
-import { Select } from './Select';
 import { ContainedButton } from './ContainedButton';
 
 export interface ProductWithQuantity {
@@ -13,14 +12,7 @@ export interface ProductWithQuantity {
   price?: number;
   quantity?: number;
   sku?: string;
-  variants?: Array<{
-    id: number | string;
-    name: string;
-    price_wholesale_usd: number | string;
-    price_retail_usd: number | string;
-    quantity: number | string;
-  }>;
-  selectedVariantId?: number | string | null;
+  variantName?: string;
 }
 
 interface ProductsTableProps {
@@ -28,7 +20,6 @@ interface ProductsTableProps {
   onAddProduct: () => void;
   onRemoveProduct: (productId: number) => void;
   onUpdateQuantity?: (productId: number, quantity: number) => void;
-  onUpdateVariant?: (productId: number, variantId: number | string | null) => void;
   allowQuantityEdit?: boolean;
   showTotal?: boolean;
   emptyMessage?: string;
@@ -42,7 +33,6 @@ export const ProductsTable = ({
   onAddProduct,
   onRemoveProduct,
   onUpdateQuantity,
-  onUpdateVariant,
   allowQuantityEdit = false,
   showTotal = false,
   emptyMessage = "No hay productos seleccionados",
@@ -54,21 +44,8 @@ export const ProductsTable = ({
   const calculateTotal = () => {
     return products.reduce((sum, product) => {
       const quantity = product.quantity || 1;
-      const price = getProductPrice(product);
-      return sum + (price * quantity);
+      return sum + ((product.price || 0) * quantity);
     }, 0);
-  };
-
-  const getProductPrice = (product: ProductWithQuantity): number => {
-    if (product.selectedVariantId && product.variants) {
-      const variant = product.variants.find(v => v.id == product.selectedVariantId); // usar == para comparar string y number
-      if (variant) {
-        return typeof variant.price_retail_usd === 'string' 
-          ? parseFloat(variant.price_retail_usd) 
-          : variant.price_retail_usd;
-      }
-    }
-    return product.price || 0;
   };
 
   const getColumns = () => {
@@ -89,38 +66,8 @@ export const ProductsTable = ({
       },
       { 
         label: 'Variante', 
-        render: (p: ProductWithQuantity) => {
-          console.log('📦 7. Renderizando fila en ProductsTable para:', p.name, '| Objeto completo:', p);
-          
-          if (!p.variants || p.variants.length === 0) {
-            return <Typography variant="body2" color="text.secondary">Sin variantes</Typography>;
-          }
-          
-          if (onUpdateVariant) {
-            return (
-              <Select 
-                label=""
-                value={String(p.selectedVariantId || '')}
-                onChange={(e) => onUpdateVariant(p.id, e.target.value ? String(e.target.value) : null)}
-                options={[
-                  { value: '', label: 'Producto base' },
-                  ...p.variants.map(v => ({
-                    value: String(v.id),
-                    label: `${v.name} - $${v.price_retail_usd}`
-                  }))
-                ]}
-              />
-            );
-          }
-          
-          if (p.selectedVariantId) {
-            const variant = p.variants.find(v => v.id == p.selectedVariantId); // usar == para comparar string y number
-            return variant ? variant.name : 'Producto base';
-          }
-          
-          return 'Producto base';
-        },
-        width: '200px'
+        render: (p: ProductWithQuantity) => p.variantName || '-',
+        width: '150px'
       },
       { 
         label: 'Cantidad', 
@@ -146,7 +93,7 @@ export const ProductsTable = ({
       },
       { 
         label: 'Precio', 
-        render: (p: ProductWithQuantity) => `$${getProductPrice(p)}`,
+        render: (p: ProductWithQuantity) => `$${p.price || 0}`,
         width: '100px',
         align: 'right'
       },

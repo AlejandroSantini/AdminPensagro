@@ -11,7 +11,7 @@ import { Input } from '../../../../components/common/Input';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { OutlinedButton } from '../../../../components/common/OutlinedButton';
 import { ProductsTable } from '../../../../components/common/ProductsTable';
-import { AddProductModal, type ProductItem } from '../../../../components/modals/AddProductModal';
+import { AddProductModal, type SelectedProductWithVariant } from '../../../../components/modals/AddProductModal';
 import api from '../../../../services/api';
 import { getProductByIdRoute, putProductRoute, postProductRoute } from '../../../../services/products';
 import { getCategoriesRoute, getSubcategoriesRoute } from '../../../../services/categories';
@@ -64,7 +64,9 @@ export default function ProductForm() {
     setModalOpen(false);
   };
 
-  const handleProductSelect = (product: ProductItem) => {
+  const handleProductSelect = (selection: SelectedProductWithVariant) => {
+    const { product } = selection;
+    
     // Verificar que no sea el mismo producto
     if (isEditMode && product.id === Number(id)) {
       alert('No puedes agregar el mismo producto como relacionado');
@@ -77,11 +79,11 @@ export default function ProductForm() {
       return;
     }
     
-    // Convertir ProductItem a ProductRef
+    // Convertir ProductItem a ProductRef (para productos relacionados no necesitamos la variante)
     const productToAdd: ProductRef = {
       id: product.id,
       name: product.name,
-      price: parseFloat(product.price?.toString() || '0')
+      price: product.price_usd ? parseFloat(product.price_usd.toString()) : 0
     };
     
     setSelectedRelatedProducts(prev => [...prev, productToAdd]);
@@ -225,14 +227,21 @@ export default function ProductForm() {
       if (variant.volumen) formData.append(`variants[${index}][volumen]`, variant.volumen.toString());
     });
 
+    // Append existing image URLs (already uploaded)
     existingImages.forEach((url) => {
       formData.append('images', url);
     });
 
-    // append existing image URLs
-    selectedImagesData.forEach((dataUrl) => {
-      formData.append('images', dataUrl);
-    });
+    // Convert dataURLs to Files and append new images
+    for (let i = 0; i < selectedImagesData.length; i++) {
+      const dataUrl = selectedImagesData[i];
+      // Convert dataURL to Blob then to File
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const fileName = `image-${Date.now()}-${i}.${blob.type.split('/')[1] || 'jpg'}`;
+      const file = new File([blob], fileName, { type: blob.type });
+      formData.append('images', file);
+    }
 
     try {
       if (isEditMode) {

@@ -13,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ImageIcon from '@mui/icons-material/Image';
 import { Table } from '../../components/common/Table';
+import { Paginator } from '../../components/common/Paginator';
 import type { BlogPost } from '../../../types/blog';
 import api from '../../services/api';
 import { deleteBlogPostRoute, getBlogPostsRoute } from '../../services/blog';
@@ -28,12 +29,20 @@ export default function Blog() {
   const [openDelete, setOpenDelete] = useState(false);
   const [openImageModal, setOpenImageModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const loadPosts = useCallback(async () => {
+  const loadPosts = useCallback(async (pageNum: number = 1) => {
     setLoading(true);
     try {
-      const res = await api.get(getBlogPostsRoute());
+      const res = await api.get(getBlogPostsRoute(), { params: { page: pageNum, per_page: 10 } });
       setPosts(res.data.data || []);
+      
+      if (res.data.meta) {
+        setTotalPages(res.data.meta.totalPages || 1);
+        setTotalItems(res.data.meta.totalItems || 0);
+      }
     } catch (e) {
       console.error('Error al cargar publicaciones:', e);
       setPosts([]);
@@ -41,6 +50,11 @@ export default function Blog() {
       setLoading(false);
     }
   }, []);
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+    loadPosts(newPage);
+  };
 
   const handleDelete = (post: BlogPost) => {
     setDeletingPost(post);
@@ -57,7 +71,7 @@ export default function Blog() {
     
     try {
       await api.delete(deleteBlogPostRoute(deletingPost.id));
-      loadPosts();
+      loadPosts(page);
       closeDelete();
     } catch (e) {
       console.error('Error al eliminar publicación:', e);
@@ -74,7 +88,7 @@ export default function Blog() {
   };
 
   useEffect(() => {
-    loadPosts();
+    loadPosts(1);
   }, [loadPosts]);
 
   const getStatusChip = (status: string) => {
@@ -149,6 +163,12 @@ export default function Blog() {
           getRowKey={(post: BlogPost) => post.id}
           emptyMessage={loading ? "Cargando publicaciones..." : "No hay publicaciones"}
           onRowClick={(post: BlogPost) => goToEdit(post.id)}
+        />
+        <Paginator
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={handlePageChange}
         />
       </Paper>
 

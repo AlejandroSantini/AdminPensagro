@@ -112,7 +112,13 @@ export function CategoryModal({ open, initialData, onClose, onSuccess }: Categor
       formData.append('status', data.status || 'active');
       
       if (images.length > 0) {
-        formData.append('image', images[0]);
+        // Convert dataURL to File
+        const dataUrl = images[0];
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const fileName = `category-image-${Date.now()}.${blob.type.split('/')[1] || 'jpg'}`;
+        const file = new File([blob], fileName, { type: blob.type });
+        formData.append('image', file);
       }
       if (removeImage) {
         formData.append('remove_image', '1');

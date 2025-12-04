@@ -3,11 +3,14 @@ import { Box, Pagination, Typography } from '@mui/material';
 export interface PaginatorProps {
   page: number;
   totalPages: number;
+  totalItems?: number;
   onPageChange: (event: React.ChangeEvent<unknown>, page: number) => void;
   sx?: any;
 }
 
-export function Paginator({ page, totalPages, onPageChange, sx }: PaginatorProps) {
+export function Paginator({ page, totalPages, totalItems, onPageChange, sx }: PaginatorProps) {
+  if (totalPages <= 1) return null;
+  
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -30,6 +33,7 @@ export function Paginator({ page, totalPages, onPageChange, sx }: PaginatorProps
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
         <Typography variant="body2" color="text.secondary">
           Página {page} de {totalPages}
+          {totalItems !== undefined && ` • ${totalItems} resultado${totalItems !== 1 ? 's' : ''}`}
         </Typography>
       </Box>
     </Box>

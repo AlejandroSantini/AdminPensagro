@@ -3,6 +3,8 @@ export interface ProductRef {
   name: string;
   price?: number;
   quantity?: number;
+  variantId?: number;
+  variantName?: string;
 }
 
 export interface ApiCombo {

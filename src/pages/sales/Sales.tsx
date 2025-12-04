@@ -7,6 +7,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import { CustomPaper } from '../../components/common/CustomPaper';
 import { Table } from '../../components/common/Table';
+import { Paginator } from '../../components/common/Paginator';
 import { ContainedButton } from '../../components/common/ContainedButton';
 import { OutlinedButton } from '../../components/common/OutlinedButton';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -23,6 +24,9 @@ export default function Sales() {
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
   const [clientOptions, setClientOptions] = useState<{label: string, value: string}[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   
   const methods = useForm({ 
     defaultValues: { 
@@ -34,19 +38,24 @@ export default function Sales() {
 
   const { handleSubmit, watch } = methods;
 
-  interface SalesFilters {
+  interface SalesFiltersType {
     search: string;
     client_id: string;
     discount_payment_method_id: string;
   }
 
-  const loadSales = useCallback(async (filterValues: SalesFilters) => {
+  const loadSales = useCallback(async (filterValues: SalesFiltersType, pageNum: number = 1) => {
     setLoading(true);
     try {
-      const res = await api.get(getSalesRoute(), { params: filterValues });
+      const res = await api.get(getSalesRoute(), { params: { ...filterValues, page: pageNum, per_page: 10 } });
       // La respuesta puede venir como data.sales o directamente como data (array)
       const salesData = res.data.data?.sales || res.data.data || [];
       setSales(Array.isArray(salesData) ? salesData : []);
+      
+      if (res.data.meta) {
+        setTotalPages(res.data.meta.totalPages || 1);
+        setTotalItems(res.data.meta.totalItems || 0);
+      }
     } catch (e) {
       console.error('Error al cargar ventas:', e);
       setSales([]);
@@ -55,8 +64,15 @@ export default function Sales() {
     }
   }, []);
 
-  const onSubmit = (data: SalesFilters) => {
-    loadSales(data);
+  const onSubmit = (data: SalesFiltersType) => {
+    setPage(1);
+    loadSales(data, 1);
+  };
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+    const currentFilters = methods.getValues();
+    loadSales(currentFilters, newPage);
   };
 
   const loadClients = useCallback(async () => {
@@ -76,7 +92,7 @@ export default function Sales() {
   }, []);
 
   useEffect(() => {
-    loadSales({ search: '', client_id: '', discount_payment_method_id: '' });
+    loadSales({ search: '', client_id: '', discount_payment_method_id: '' }, 1);
     loadClients();
   }, [loadSales, loadClients]);
 
@@ -253,6 +269,12 @@ export default function Sales() {
           getRowKey={s => s.id || `sale-${s.created_at}`}
           onRowClick={handleEditSale}
           emptyMessage={loading ? "Cargando..." : "No hay ventas"}
+        />
+        <Paginator
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={handlePageChange}
         />
       </CustomPaper>
     </Box>

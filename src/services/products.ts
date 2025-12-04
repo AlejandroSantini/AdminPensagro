@@ -3,11 +3,11 @@ const PRODUCTS_BASE = `${API_BASE}/api/products`;
 
 export const getProductsRoute = (): string => PRODUCTS_BASE;
 
-export const postProductRoute = (): string => `${PRODUCTS_BASE}/upload`;
+export const postProductRoute = (): string => `${PRODUCTS_BASE}`;
 
 export const getProductByIdRoute = (id: number | string): string => `${PRODUCTS_BASE}/${id}`;
 
-export const putProductRoute = (id: number | string): string => `${PRODUCTS_BASE}/upload/${id}`;
+export const putProductRoute = (id: number | string): string => `${PRODUCTS_BASE}/${id}`;
 
 export const deleteProductRoute = (id: number | string): string => `${PRODUCTS_BASE}/${id}`;
 

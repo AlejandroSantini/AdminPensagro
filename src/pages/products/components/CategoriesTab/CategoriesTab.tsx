@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import ArchiveIcon from '@mui/icons-material/ArchiveOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { Table } from '../../../../components/common/Table';
+import { Paginator } from '../../../../components/common/Paginator';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 import api from '../../../../services/api';
@@ -17,23 +18,36 @@ export default function CategoriesTab() {
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [categoryToArchive, setCategoryToArchive] = useState<Category | null>(null);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async (pageNum: number = 1) => {
     try {
       setLoading(true);
-      const res = await api.get(getCategoriesRoute());
+      const res = await api.get(getCategoriesRoute(), { params: { page: pageNum, per_page: 10 } });
       setCategories(res.data.data || []);
+      
+      if (res.data.meta) {
+        setTotalPages(res.data.meta.totalPages || 1);
+        setTotalItems(res.data.meta.totalItems || 0);
+      }
     } catch (e) {
       console.error('Error loading categories:', e);
       setCategories([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    loadCategories(1);
+  }, [loadCategories]);
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+    loadCategories(newPage);
+  };
 
   const handleNewCategory = () => {
     setSelectedCategory(null);
@@ -53,7 +67,7 @@ export default function CategoriesTab() {
   const handleCategorySaved = () => {
     setOpenModal(false);
     setSelectedCategory(null);
-    loadCategories();
+    loadCategories(page);
   };
 
   const handleArchive = (category: Category) => {
@@ -75,7 +89,7 @@ export default function CategoriesTab() {
         status: 'archived'
       });
       closeArchiveDialog();
-      loadCategories();
+      loadCategories(page);
     } catch (e) {
       console.error('Error archiving category:', e);
     }
@@ -126,6 +140,12 @@ export default function CategoriesTab() {
         getRowKey={(c: Category) => c.id}
         onRowClick={handleEditCategory}
         emptyMessage={loading ? "Cargando categorías..." : "No hay categorías"}
+      />
+      <Paginator
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={handlePageChange}
       />
       
       <CategoryModal

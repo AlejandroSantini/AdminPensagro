@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ArchiveIcon from '@mui/icons-material/ArchiveOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { Table } from '../../../../components/common/Table';
+import { Paginator } from '../../../../components/common/Paginator';
 import { ContainedButton } from '../../../../components/common/ContainedButton';
 import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 import api from '../../../../services/api';
@@ -16,10 +17,13 @@ export default function CombosTab() {
   const [combos, setCombos] = useState<Combo[]>([]);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [comboToArchive, setComboToArchive] = useState<Combo | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const loadCombos = async () => {
+  const loadCombos = useCallback(async (pageNum: number = 1) => {
     try {
-      const res = await api.get(getCombosRoute());
+      const res = await api.get(getCombosRoute(), { params: { page: pageNum, per_page: 10 } });
       
       const transformedCombos: Combo[] = res.data.data.map((apiCombo: ApiCombo) => ({
         id: parseInt(apiCombo.id),
@@ -32,14 +36,24 @@ export default function CombosTab() {
       }));
       
       setCombos(transformedCombos);
+      
+      if (res.data.meta) {
+        setTotalPages(res.data.meta.totalPages || 1);
+        setTotalItems(res.data.meta.totalItems || 0);
+      }
     } catch (error) {
       console.error('Error al cargar los combos:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadCombos();
-  }, []);
+    loadCombos(1);
+  }, [loadCombos]);
+
+  const handlePageChange = (_: React.ChangeEvent<unknown>, newPage: number) => {
+    setPage(newPage);
+    loadCombos(newPage);
+  };
 
   const goToNewCombo = () => {
     navigate('/productos/combo/nuevo');
@@ -120,6 +134,12 @@ export default function CombosTab() {
         getRowKey={(c: Combo) => c.id}
         onRowClick={goToEditCombo}
         emptyMessage="No hay combos"
+      />
+      <Paginator
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={handlePageChange}
       />
       
       <ConfirmDialog

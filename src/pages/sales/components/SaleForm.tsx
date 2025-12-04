@@ -12,7 +12,7 @@ import { ProductsTable } from '../../../components/common/ProductsTable';
 import { AddProductModal } from '../../../components/modals/AddProductModal';
 import { ClientSearchModal } from '../../../components/modals/ClientSearchModal';
 import { ShippingDataForm } from '../../../components/common/ShippingDataForm';
-import type { ProductItem } from '../../../components/modals/AddProductModal';
+import type { SelectedProductWithVariant } from '../../../components/modals/AddProductModal';
 import { CustomPaper } from '../../../components/common/CustomPaper';
 import api from '../../../services/api';
 import { getSaleByIdRoute, postSaleRoute, putSaleRoute } from '../../../services/sales';
@@ -61,14 +61,8 @@ interface SaleProduct {
   quantity: number;
   sku?: string;
   stock?: number;
-  variants?: Array<{
-    id: number | string;
-    name: string;
-    price_wholesale_usd: number | string;
-    price_retail_usd: number | string;
-    quantity: number | string;
-  }>;
-  selectedVariantId?: number | string | null;
+  variantId?: number | string | null;
+  variantName?: string;
 }
 
 interface ShippingData {
@@ -199,11 +193,11 @@ export default function SaleForm() {
               return {
                 id: product.id || item.product_id,
                 name: product.name || `Producto #${product.id}`,
-                price: item.unit_price_usd || parseFloat(variant.price_retail_usd || product.price_usd || '0'),
+                price: item.unit_price_usd || parseFloat(variant.price_retail_usd || '0'),
                 quantity: item.quantity || 1,
                 sku: product.sku || '',
-                variants: product.variants || [],
-                selectedVariantId: item.variant_id || null
+                variantId: item.variant_id || null,
+                variantName: variant.name || undefined
               };
             });
             
@@ -313,16 +307,29 @@ export default function SaleForm() {
     setModalOpen(false);
   };
 
-  const handleAddProduct = (product: ProductItem) => {
+  const handleAddProduct = (selection: SelectedProductWithVariant) => {
+    const { product, variant } = selection;
+    
+    let price = 0;
+    if (variant) {
+      price = typeof variant.price_retail_usd === 'string' 
+        ? parseFloat(variant.price_retail_usd) 
+        : variant.price_retail_usd;
+    } else if (product.price_usd) {
+      price = typeof product.price_usd === 'string'
+        ? parseFloat(product.price_usd)
+        : product.price_usd;
+    }
+    
     const newProduct: SaleProduct = {
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: price,
       sku: product.sku,
       stock: product.stock,
       quantity: 1,
-      selectedVariantId: null,
-      variants: product.variants || []
+      variantId: variant ? variant.id : null,
+      variantName: variant ? variant.name : undefined
     };
     
     setSelectedProducts(prev => {
@@ -341,27 +348,6 @@ export default function SaleForm() {
     
     setSelectedProducts(prev => 
       prev.map(p => p.id === productId ? { ...p, quantity } : p)
-    );
-  };
-
-  const handleUpdateVariant = (productId: number, variantId: number | string | null) => {
-    setSelectedProducts(prev => 
-      prev.map(p => {
-        if (p.id === productId) {
-          let newPrice = p.price;
-          if (variantId && p.variants) {
-            const variant = p.variants.find(v => v.id == variantId);
-            if (variant) {
-              const price = typeof variant.price_retail_usd === 'string' 
-                ? parseFloat(variant.price_retail_usd) 
-                : variant.price_retail_usd;
-              newPrice = price;
-            }
-          }
-          return { ...p, selectedVariantId: variantId, price: newPrice };
-        }
-        return p;
-      })
     );
   };
 
@@ -384,7 +370,7 @@ export default function SaleForm() {
         payment_status: data.payment_status || 'pending',
         products: selectedProducts.map(p => ({
           product_id: p.id,
-          variant_id: p.selectedVariantId ? parseInt(String(p.selectedVariantId)) : null,
+          variant_id: p.variantId ? parseInt(String(p.variantId)) : null,
           quantity: p.quantity
         })),
         coupon_id: data.coupon_id ? parseInt(data.coupon_id) : null,
@@ -720,7 +706,6 @@ export default function SaleForm() {
                   onAddProduct={openProductModal}
                   onRemoveProduct={handleRemoveProduct}
                   onUpdateQuantity={handleUpdateQuantity}
-                  onUpdateVariant={handleUpdateVariant}
                   allowQuantityEdit={true}
                   showTotal={true}
                   emptyMessage="Aún no hay productos seleccionados"
